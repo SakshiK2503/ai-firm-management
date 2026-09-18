@@ -67,3 +67,8 @@
   color: var(--foreground);
   cursor: pointer;
 }
+
+.warning {
+  color: #d97706;
+  font-size: 0.85rem;
+}

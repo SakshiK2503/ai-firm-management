@@ -8,6 +8,7 @@ interface Department {
   id: string;
   name: string;
   isActive: boolean;
+  activeEmployeeCount: number;
 }
 
 export function DepartmentsAdmin({ initialDepartments }: { initialDepartments: Department[] }) {
@@ -109,17 +110,31 @@ export function DepartmentsAdmin({ initialDepartments }: { initialDepartments: D
             </tr>
           </thead>
           <tbody>
-            {filtered.map((department) => (
-              <tr key={department.id}>
-                <td>{department.name}</td>
-                <td>{department.isActive ? 'Active' : 'Disabled'}</td>
-                <td>
-                  <button type="button" onClick={() => toggleActive(department)}>
-                    {department.isActive ? 'Disable' : 'Enable'}
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {filtered.map((department) => {
+              const hasOrphanedEmployees =
+                !department.isActive && department.activeEmployeeCount > 0;
+              return (
+                <tr key={department.id}>
+                  <td>{department.name}</td>
+                  <td>
+                    {department.isActive ? 'Active' : 'Disabled'}
+                    {hasOrphanedEmployees && (
+                      <span role="alert" className={styles.warning}>
+                        {' '}
+                        ⚠ {department.activeEmployeeCount} active{' '}
+                        {department.activeEmployeeCount === 1 ? 'employee' : 'employees'} still
+                        assigned here
+                      </span>
+                    )}
+                  </td>
+                  <td>
+                    <button type="button" onClick={() => toggleActive(department)}>
+                      {department.isActive ? 'Disable' : 'Enable'}
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       )}

@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { db } from '@/modules/kernel/db';
+import { hashPassword } from '@/modules/kernel/auth/password';
 import { createDepartment, listDepartments, updateDepartment } from './department.service';
 
 describe('department service', () => {
@@ -101,5 +102,43 @@ describe('department service', () => {
     await expect(
       updateDepartment(organisationId, department.id, { isActive: false }),
     ).rejects.toMatchObject({ statusCode: 404, code: 'NOT_FOUND' });
+  });
+
+  it('reports active employees left in a department after it is disabled (an exception to surface, not auto-fix)', async () => {
+    const department = await createDepartment(organisationId, 'Has Employees');
+    const passwordHash = await hashPassword('irrelevant');
+
+    const active = await db.user.create({
+      data: {
+        organisationId,
+        email: `active-${crypto.randomUUID()}@example.com`,
+        name: 'Active Employee',
+        passwordHash,
+        departmentId: department.id,
+      },
+    });
+    await db.user.create({
+      data: {
+        organisationId,
+        email: `inactive-${crypto.randomUUID()}@example.com`,
+        name: 'Inactive Employee',
+        passwordHash,
+        departmentId: department.id,
+        isActive: false,
+      },
+    });
+
+    const beforeDisable = await listDepartments(organisationId, { includeInactive: true });
+    expect(beforeDisable.find((d) => d.id === department.id)?.activeEmployeeCount).toBe(1);
+
+    await updateDepartment(organisationId, department.id, { isActive: false });
+
+    const afterDisable = await listDepartments(organisationId, { includeInactive: true });
+    const disabled = afterDisable.find((d) => d.id === department.id);
+    // Disabling the department never touches the employees already in it - isActive is
+    // completely untouched by this.
+    expect(disabled?.activeEmployeeCount).toBe(1);
+    const stillActive = await db.user.findUniqueOrThrow({ where: { id: active.id } });
+    expect(stillActive.isActive).toBe(true);
   });
 });

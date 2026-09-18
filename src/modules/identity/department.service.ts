@@ -17,14 +17,26 @@ export async function listDepartments(
   organisationId: string,
   options: { search?: string; includeInactive?: boolean } = {},
 ) {
-  return db.department.findMany({
+  const departments = await db.department.findMany({
     where: {
       organisationId,
       ...(options.search ? { name: { contains: options.search, mode: 'insensitive' } } : {}),
       ...(options.includeInactive ? {} : { isActive: true }),
     },
+    // Active employees still sitting in a disabled department are a deliberate exception, not
+    // an error - department.isActive only blocks *new* assignments (see
+    // assertDepartmentAssignable in employee.service.ts), it never touches existing employees.
+    // Surfacing the count here lets the UI flag it for a human to act on, per the "exception
+    // based management" and "human override always wins" principles - nothing here ever
+    // auto-deactivates anyone.
+    include: { _count: { select: { users: { where: { isActive: true } } } } },
     orderBy: { name: 'asc' },
   });
+
+  return departments.map(({ _count, ...department }) => ({
+    ...department,
+    activeEmployeeCount: _count.users,
+  }));
 }
 
 export async function updateDepartment(
