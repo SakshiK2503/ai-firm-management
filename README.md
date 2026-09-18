@@ -11,17 +11,20 @@ npx prisma dev -d -n ai-firm-management   # starts a local Postgres, prints a DA
 cp .env.example .env
 ```
 
-**Then open `.env` and replace the placeholder `DATABASE_URL` with the one `prisma dev` just
-printed** (the two won't match — `.env.example`'s port/db-name are just a generic placeholder,
-not what `prisma dev` actually picked). Forgetting this step is the most common setup error:
-`prisma migrate deploy`/`dev` will fail with `P1001: Can't reach database server` if the port is
-wrong.
+**Then open `.env` and replace the placeholder `DATABASE_URL` and `SHADOW_DATABASE_URL` with
+the ones `prisma dev` just printed** (they won't match — `.env.example`'s port/db-name are just
+a generic placeholder, not what `prisma dev` actually picked). Forgetting this step is the most
+common setup error: `prisma migrate deploy`/`dev` will fail with `P1001: Can't reach database
+server` if the port is wrong.
 
 ```bash
 npx prisma migrate dev
 npm run db:seed
 npm run dev
 ```
+
+Sign in at `/login` with the seed user: `owner@zelox.in` / `ChangeMe123!` (a dev-only password,
+not a real secret — see `prisma/seed-data.ts`).
 
 `npx prisma dev` needs to be started once per machine reboot (`npx prisma dev ls` shows running
 servers — if `ai-firm-management` shows `not_running`, run `npx prisma dev start

@@ -44,6 +44,7 @@ describe('identity core schema', () => {
         organisationId,
         email: `user-${crypto.randomUUID()}@example.com`,
         name: 'Test User',
+        passwordHash: 'not-a-real-hash',
         departmentId: department.id,
         roleId: role.id,
       },

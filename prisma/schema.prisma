@@ -19,6 +19,7 @@ model Organisation {
   departments Department[]
   roles       Role[]
   users       User[]
+  sessions    Session[]
 
   @@map("organisations")
 }
@@ -59,6 +60,7 @@ model User {
   organisationId String
   email          String
   name           String
+  passwordHash   String
   isActive       Boolean  @default(true)
   departmentId   String?
   roleId         String?
@@ -68,10 +70,29 @@ model User {
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   department   Department?  @relation(fields: [departmentId], references: [id])
   role         Role?        @relation(fields: [roleId], references: [id])
+  sessions     Session[]
 
   @@unique([organisationId, email])
   @@index([organisationId])
   @@index([departmentId])
   @@index([roleId])
   @@map("users")
+}
+
+/// A logged-in session, looked up by the opaque id stored in the session cookie. Kept as its
+/// own DB-backed table (not a stateless JWT) so a session can be revoked - see "human override
+/// always wins" in CLAUDE.md.
+model Session {
+  id             String   @id @default(uuid())
+  organisationId String
+  userId         String
+  expiresAt      DateTime
+  createdAt      DateTime @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId])
+  @@index([userId])
+  @@map("sessions")
 }
