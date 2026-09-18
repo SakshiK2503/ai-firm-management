@@ -40,8 +40,8 @@ fit without circular dependencies") is checking for.
   modules don't depend on each other except `intake → allocation` (intake produces the proposed
   task allocation reads).
 - **Intelligence** — `ai-intelligence` (management-facing insights) and `ai-agents` (execution
-  agents). Depends on Kernel + Domain + Process outputs, but only ever *reads* domain data and
-  *writes* through Process/Domain service functions — never direct Prisma writes to
+  agents). Depends on Kernel + Domain + Process outputs, but only ever _reads_ domain data and
+  _writes_ through Process/Domain service functions — never direct Prisma writes to
   system-of-record tables. This is where principle 7 ("AI proposes; code and humans decide") is
   enforced structurally: an AI module has no code path to mutate task status, allocation, or
   deadlines except by calling the same service function a human-triggered API route calls, which
@@ -57,27 +57,27 @@ internals.
 
 ## Module map (roadmap phase → module → layer)
 
-| Phase (Daily Plan) | Module folder | Layer | Responsibility |
-|---|---|---|---|
-| Foundation | `kernel` | Kernel | db, auth, validation, errors, logging, seed, CI |
-| Auth & Security | `identity` (auth slice) + `kernel/rbac` | Kernel/Domain | login, sessions, route protection, RBAC model + enforcement |
-| Organisation | `identity` | Domain | Organisation, Department, User/Employee, Role |
-| Client Management | `clients` | Domain | Client records, contacts, relationships |
-| Service Master | `services` | Domain | Service/task-type catalogue, department-service mapping |
-| Task Engine | `tasks` | Domain | Task entity + full status state machine |
-| Employee Workbench | `workbench` | Process | per-employee task list, updates, mobile views |
-| Review & Quality | `review` | Process | review/approval workflow, rework loop, delay-cause attribution |
-| Documents & Knowledge | `documents` | Domain | document storage, retention/archive rules, upload security |
-| Time & Economics | `time-economics` | Domain | time entries, cost computation |
-| Deadlines & SLA | `deadlines` | Domain | statutory/client-committed/internal deadlines, safety margins |
-| Communication & AI Intake | `intake` | Process | AI provider governance, WhatsApp/email/voice/internal intake → proposed task |
-| Allocation Engine | `allocation` | Process | allocation scoring, assignment, confirmation queue |
-| Management Command Centre | `command-centre` | Surface | exception dashboards, delay-cause views |
-| Audit & Security | `kernel/audit` (hardening) | Kernel | audit trail completeness, security hardening pass |
-| AI Management Intelligence | `ai-intelligence` | Intelligence | management-facing AI insights |
-| AI Execution Agents | `ai-agents` | Intelligence | AI agents that act via Process/Domain service calls |
-| Client Portal & Delivery | `portal` | Surface | client-facing views/delivery |
-| Integrations & Production | `integrations` | Surface | external system integrations, production hardening |
+| Phase (Daily Plan)         | Module folder                           | Layer         | Responsibility                                                               |
+| -------------------------- | --------------------------------------- | ------------- | ---------------------------------------------------------------------------- |
+| Foundation                 | `kernel`                                | Kernel        | db, auth, validation, errors, logging, seed, CI                              |
+| Auth & Security            | `identity` (auth slice) + `kernel/rbac` | Kernel/Domain | login, sessions, route protection, RBAC model + enforcement                  |
+| Organisation               | `identity`                              | Domain        | Organisation, Department, User/Employee, Role                                |
+| Client Management          | `clients`                               | Domain        | Client records, contacts, relationships                                      |
+| Service Master             | `services`                              | Domain        | Service/task-type catalogue, department-service mapping                      |
+| Task Engine                | `tasks`                                 | Domain        | Task entity + full status state machine                                      |
+| Employee Workbench         | `workbench`                             | Process       | per-employee task list, updates, mobile views                                |
+| Review & Quality           | `review`                                | Process       | review/approval workflow, rework loop, delay-cause attribution               |
+| Documents & Knowledge      | `documents`                             | Domain        | document storage, retention/archive rules, upload security                   |
+| Time & Economics           | `time-economics`                        | Domain        | time entries, cost computation                                               |
+| Deadlines & SLA            | `deadlines`                             | Domain        | statutory/client-committed/internal deadlines, safety margins                |
+| Communication & AI Intake  | `intake`                                | Process       | AI provider governance, WhatsApp/email/voice/internal intake → proposed task |
+| Allocation Engine          | `allocation`                            | Process       | allocation scoring, assignment, confirmation queue                           |
+| Management Command Centre  | `command-centre`                        | Surface       | exception dashboards, delay-cause views                                      |
+| Audit & Security           | `kernel/audit` (hardening)              | Kernel        | audit trail completeness, security hardening pass                            |
+| AI Management Intelligence | `ai-intelligence`                       | Intelligence  | management-facing AI insights                                                |
+| AI Execution Agents        | `ai-agents`                             | Intelligence  | AI agents that act via Process/Domain service calls                          |
+| Client Portal & Delivery   | `portal`                                | Surface       | client-facing views/delivery                                                 |
+| Integrations & Production  | `integrations`                          | Surface       | external system integrations, production hardening                           |
 
 Note `identity` and `kernel/rbac` are listed together because Auth & Security (Day 11-16) is
 building the enforcement mechanism (session, route protection, permission middleware) that lives
@@ -130,7 +130,7 @@ happen, not in the route handler and not only in the UI.
    Kernel audit writer before returning.
 3. Every service function that gates on role/department calls the Kernel `rbac.can()` check
    before doing anything else — enforced in the API layer per principle 6, never only in the UI.
-4. AI-produced results are inserted as *proposals* (their own table/status), never written into
+4. AI-produced results are inserted as _proposals_ (their own table/status), never written into
    a system-of-record field directly. A human or a deterministic rule promotes a proposal into
    the real record. This is the concrete mechanism behind "AI is an assistant, not the system of
    record."
