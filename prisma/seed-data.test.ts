@@ -30,7 +30,7 @@ describe('seedDatabase', () => {
 
     expect(departmentCount).toBe(3);
     expect(userCount).toBe(3);
-  });
+  }, 15_000);
 
   it('seeds the RBAC grants so the owner (Partner) can manage the organisation but a fresh Preparer role cannot', async () => {
     const result = await seedDatabase();

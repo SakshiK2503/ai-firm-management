@@ -4,13 +4,24 @@ import { useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './AppShell.module.css';
 
-const NAV_LINKS = [{ href: '/', label: 'Dashboard' }];
-
 const NAV_PLACEHOLDERS = ['Clients', 'Tasks', 'Documents'];
 
-export function AppShell({ children, userName }: { children: ReactNode; userName: string }) {
+export function AppShell({
+  children,
+  userName,
+  canViewDepartments,
+}: {
+  children: ReactNode;
+  userName: string;
+  canViewDepartments: boolean;
+}) {
   const router = useRouter();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
+
+  const navLinks = [
+    { href: '/', label: 'Dashboard' },
+    ...(canViewDepartments ? [{ href: '/departments', label: 'Departments' }] : []),
+  ];
 
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -46,7 +57,7 @@ export function AppShell({ children, userName }: { children: ReactNode; userName
           aria-label="Primary"
         >
           <ul className={styles.navList}>
-            {NAV_LINKS.map((link) => (
+            {navLinks.map((link) => (
               <li key={link.href}>
                 <a
                   href={link.href}
