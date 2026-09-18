@@ -6,7 +6,10 @@ declare global {
 }
 
 function createPrismaClient() {
-  const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL, max: 5 });
+  // Kept small: prisma dev's embedded Postgres is comfortable around 10 total connections, and
+  // this pool has to share that budget with every other process pointed at the same dev DB
+  // (another `npm run dev`, the E2E webServer, one-off scripts like the seed).
+  const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL, max: 3 });
   return new PrismaClient({ adapter });
 }
 

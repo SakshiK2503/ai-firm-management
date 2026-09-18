@@ -2,7 +2,12 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './e2e',
-  fullyParallel: true,
+  // The local dev DB (PGlite via `prisma dev`) gets flaky/slow under concurrent requests from
+  // multiple parallel workers doing real logins/navigations - same root cause as the Vitest
+  // fileParallelism fix (see vitest.config.ts). Real Postgres in CI wouldn't need this, but
+  // running everything sequentially here keeps local and CI behavior identical.
+  fullyParallel: false,
+  workers: 1,
   reporter: 'list',
   use: {
     baseURL: 'http://localhost:3100',

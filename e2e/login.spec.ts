@@ -1,8 +1,5 @@
 import { expect, test } from '@playwright/test';
-
-// Must match prisma/seed-data.ts's SEED_OWNER_EMAIL / SEED_OWNER_PASSWORD.
-const SEED_OWNER_EMAIL = 'owner@zelox.in';
-const SEED_OWNER_PASSWORD = 'ChangeMe123!';
+import { SEED_OWNER_EMAIL, SEED_OWNER_PASSWORD } from './helpers';
 
 test.describe('login page', () => {
   test('logs in with valid seeded credentials and redirects to the dashboard', async ({ page }) => {

@@ -1,3 +1,4 @@
+import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/modules/kernel/db';
 
@@ -39,8 +40,7 @@ export function attachSessionCookie(
   });
 }
 
-export async function getCurrentUser(request: NextRequest) {
-  const sessionId = request.cookies.get(SESSION_COOKIE_NAME)?.value;
+async function findValidSession(sessionId: string | undefined) {
   if (!sessionId) return null;
 
   const session = await db.session.findUnique({
@@ -52,5 +52,22 @@ export async function getCurrentUser(request: NextRequest) {
     return null;
   }
 
-  return { user: session.user, session };
+  return session;
+}
+
+/** For Route Handlers, which receive a NextRequest directly. */
+export async function getCurrentUser(request: NextRequest) {
+  const sessionId = request.cookies.get(SESSION_COOKIE_NAME)?.value;
+  const session = await findValidSession(sessionId);
+  return session ? { user: session.user, session } : null;
+}
+
+/** For Server Components/layouts, which don't receive a request object and instead read
+ * cookies via next/headers. Prisma needs the Node.js runtime (not Edge), which is exactly what
+ * Server Components already run in - so this, not middleware, is where page protection lives. */
+export async function getCurrentUserFromCookies() {
+  const cookieStore = await cookies();
+  const sessionId = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+  const session = await findValidSession(sessionId);
+  return session?.user ?? null;
 }

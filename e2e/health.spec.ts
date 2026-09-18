@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
+import { loginViaApi } from './helpers';
 
-test('home page loads and the health API responds ok', async ({ page, request }) => {
+test('dashboard loads and the health API responds ok', async ({ page, request }) => {
+  await loginViaApi(page);
   await page.goto('/');
   await expect(page).toHaveTitle('AI Operations OS');
 

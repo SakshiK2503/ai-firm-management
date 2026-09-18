@@ -1,7 +1,9 @@
 import { expect, test } from '@playwright/test';
+import { loginViaApi } from './helpers';
 
 test.describe('app shell', () => {
   test('desktop: sidebar nav is visible without interaction', async ({ page }) => {
+    await loginViaApi(page);
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto('/');
 
@@ -11,6 +13,7 @@ test.describe('app shell', () => {
   });
 
   test('mobile: sidebar nav is hidden until the menu button is used', async ({ page }) => {
+    await loginViaApi(page);
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto('/');
 
