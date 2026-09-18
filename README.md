@@ -8,15 +8,26 @@ for the module map, and [`docs/roadmap.xlsx`](./docs/roadmap.xlsx) (`Daily Plan`
 ```bash
 npm install
 npx prisma dev -d -n ai-firm-management   # starts a local Postgres, prints a DATABASE_URL
-cp .env.example .env                       # then edit DATABASE_URL to match what prisma dev printed
+cp .env.example .env
+```
+
+**Then open `.env` and replace the placeholder `DATABASE_URL` with the one `prisma dev` just
+printed** (the two won't match — `.env.example`'s port/db-name are just a generic placeholder,
+not what `prisma dev` actually picked). Forgetting this step is the most common setup error:
+`prisma migrate deploy`/`dev` will fail with `P1001: Can't reach database server` if the port is
+wrong.
+
+```bash
 npx prisma migrate dev
+npm run db:seed
 npm run dev
 ```
 
 `npx prisma dev` needs to be started once per machine reboot (`npx prisma dev ls` shows running
-servers, `npx prisma dev start ai-firm-management` restarts a stopped one). A Dockerized
-Postgres works too if you'd rather not use Prisma's built-in dev server — point `DATABASE_URL`
-at it instead.
+servers — if `ai-firm-management` shows `not_running`, run `npx prisma dev start
+ai-firm-management` to bring back the _same_ connection string, no `.env` edit needed on
+restart). A Dockerized Postgres works too if you'd rather not use Prisma's built-in dev server —
+point `DATABASE_URL` at it instead.
 
 ## Scripts
 
