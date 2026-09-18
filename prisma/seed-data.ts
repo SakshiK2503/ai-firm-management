@@ -1,5 +1,7 @@
 import { db } from '@/modules/kernel/db';
 import { hashPassword } from '@/modules/kernel/auth/password';
+import { PERMISSION_CATALOG, SYSTEM_ROLES } from '@/modules/kernel/rbac/permissions';
+import { ROLE_PERMISSION_GRANTS, SYSTEM_ROLE_DISPLAY_NAMES } from './rbac-seed-data';
 
 const SEED_ORG_ID = 'seed-org';
 
@@ -26,14 +28,46 @@ export async function seedDatabase() {
   );
 
   const roles = await Promise.all(
-    ['Partner', 'Manager', 'Preparer'].map((name) =>
+    SYSTEM_ROLES.map((systemRole) =>
       db.role.upsert({
-        where: { organisationId_name: { organisationId: organisation.id, name } },
+        where: {
+          organisationId_name: {
+            organisationId: organisation.id,
+            name: SYSTEM_ROLE_DISPLAY_NAMES[systemRole],
+          },
+        },
         update: {},
-        create: { organisationId: organisation.id, name },
+        create: { organisationId: organisation.id, name: SYSTEM_ROLE_DISPLAY_NAMES[systemRole] },
       }),
     ),
   );
+  const roleByName = new Map(roles.map((role) => [role.name, role]));
+
+  // The permission catalog is system reference data, not tenant sample data, but there's no
+  // separate production-seeding mechanism yet - see docs/RBAC.md. createMany (not per-row
+  // upserts) keeps this to a couple of round trips instead of dozens against the connection
+  // pool.
+  await db.permission.createMany({ data: [...PERMISSION_CATALOG], skipDuplicates: true });
+
+  // Re-seed grants from scratch each run (rather than upsert-only) so the DB always matches
+  // ROLE_PERMISSION_GRANTS exactly, including permissions removed from a role since the last run.
+  await db.rolePermission.deleteMany({ where: { organisationId: organisation.id } });
+  await db.rolePermission.createMany({
+    data: SYSTEM_ROLES.flatMap((systemRole) => {
+      const role = roleByName.get(SYSTEM_ROLE_DISPLAY_NAMES[systemRole]);
+      if (!role)
+        throw new Error(`Seeded role "${SYSTEM_ROLE_DISPLAY_NAMES[systemRole]}" not found`);
+
+      return ROLE_PERMISSION_GRANTS[systemRole].map((permissionKey) => ({
+        organisationId: organisation.id,
+        roleId: role.id,
+        permissionKey,
+      }));
+    }),
+  });
+
+  const partnerRole = roleByName.get(SYSTEM_ROLE_DISPLAY_NAMES.partner);
+  if (!partnerRole) throw new Error('Seeded Partner role not found');
 
   const owner = await db.user.upsert({
     where: { organisationId_email: { organisationId: organisation.id, email: SEED_OWNER_EMAIL } },
@@ -44,7 +78,7 @@ export async function seedDatabase() {
       name: 'Firm Owner',
       passwordHash: await hashPassword(SEED_OWNER_PASSWORD),
       departmentId: departments[0].id,
-      roleId: roles[0].id,
+      roleId: partnerRole.id,
     },
   });
 

@@ -1,54 +1,66 @@
-import { describe, expect, it } from 'vitest';
-import {
-  hasPermission,
-  PERMISSIONS,
-  ROLE_PERMISSIONS,
-  SYSTEM_ROLES,
-  type SystemRole,
-} from './permissions';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { db } from '@/modules/kernel/db';
+import { isPermission, PERMISSION_CATALOG, roleHasPermission } from './permissions';
 
-describe('RBAC permission matrix', () => {
-  it('has no duplicate permission strings', () => {
-    expect(new Set(PERMISSIONS).size).toBe(PERMISSIONS.length);
+describe('permission catalog', () => {
+  it('has no duplicate permission keys', () => {
+    const keys = PERMISSION_CATALOG.map((entry) => entry.key);
+    expect(new Set(keys).size).toBe(keys.length);
   });
 
-  it('has a matrix entry for every system role', () => {
-    for (const role of SYSTEM_ROLES) {
-      expect(ROLE_PERMISSIONS[role]).toBeDefined();
-      expect(ROLE_PERMISSIONS[role].size).toBeGreaterThan(0);
-    }
+  it('has no permission called auditLog:manage - the audit log is read-only for everyone', () => {
+    const keys = PERMISSION_CATALOG.map((entry) => entry.key);
+    expect(keys).not.toContain('auditLog:manage');
   });
 
-  it('is hierarchical: manager has every preparer permission, partner has every manager permission', () => {
-    for (const permission of ROLE_PERMISSIONS.preparer) {
-      expect(ROLE_PERMISSIONS.manager.has(permission)).toBe(true);
-    }
-    for (const permission of ROLE_PERMISSIONS.manager) {
-      expect(ROLE_PERMISSIONS.partner.has(permission)).toBe(true);
-    }
+  it('has no permission called task:delete - tasks are cancelled, never deleted', () => {
+    const keys = PERMISSION_CATALOG.map((entry) => entry.key);
+    expect(keys).not.toContain('task:delete');
+    expect(keys).toContain('task:cancel');
   });
 
-  it('gives partner strictly more permissions than manager, and manager strictly more than preparer', () => {
-    expect(ROLE_PERMISSIONS.manager.size).toBeGreaterThan(ROLE_PERMISSIONS.preparer.size);
-    expect(ROLE_PERMISSIONS.partner.size).toBeGreaterThan(ROLE_PERMISSIONS.manager.size);
+  it('isPermission recognizes catalog keys and rejects unknown strings', () => {
+    expect(isPermission('task:view')).toBe(true);
+    expect(isPermission('task:not-a-real-permission')).toBe(false);
+  });
+});
+
+describe('roleHasPermission', () => {
+  let organisationId: string;
+  let managerRoleId: string;
+
+  beforeAll(async () => {
+    const organisation = await db.organisation.create({
+      data: { name: `RBAC Test Org ${crypto.randomUUID()}` },
+    });
+    organisationId = organisation.id;
+
+    await db.permission.upsert({
+      where: { key: 'task:reassign' },
+      update: {},
+      create: { key: 'task:reassign', description: 'Reassign a task' },
+    });
+
+    const managerRole = await db.role.create({
+      data: { organisationId, name: 'Manager' },
+    });
+    managerRoleId = managerRole.id;
+
+    await db.rolePermission.create({
+      data: { organisationId, roleId: managerRoleId, permissionKey: 'task:reassign' },
+    });
   });
 
-  it('only partner can manage the organisation', () => {
-    const rolesWithAccess = SYSTEM_ROLES.filter((role: SystemRole) =>
-      hasPermission(role, 'organisation:manage'),
-    );
-    expect(rolesWithAccess).toEqual(['partner']);
+  afterAll(async () => {
+    await db.organisation.delete({ where: { id: organisationId } });
+    await db.$disconnect();
   });
 
-  it('preparer cannot delete tasks or view the audit log', () => {
-    expect(hasPermission('preparer', 'task:delete')).toBe(false);
-    expect(hasPermission('preparer', 'auditLog:view')).toBe(false);
+  it('returns true for a granted permission', async () => {
+    expect(await roleHasPermission(managerRoleId, 'task:reassign')).toBe(true);
   });
 
-  it('every role can view their own tasks and the dashboard', () => {
-    for (const role of SYSTEM_ROLES) {
-      expect(hasPermission(role, 'task:view')).toBe(true);
-      expect(hasPermission(role, 'dashboard:view')).toBe(true);
-    }
+  it('returns false for a permission that was never granted', async () => {
+    expect(await roleHasPermission(managerRoleId, 'organisation:manage')).toBe(false);
   });
 });

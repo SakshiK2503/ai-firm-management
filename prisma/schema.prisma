@@ -16,10 +16,11 @@ model Organisation {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  departments Department[]
-  roles       Role[]
-  users       User[]
-  sessions    Session[]
+  departments     Department[]
+  roles           Role[]
+  users           User[]
+  sessions        Session[]
+  rolePermissions RolePermission[]
 
   @@map("organisations")
 }
@@ -47,12 +48,47 @@ model Role {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  organisation Organisation     @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   users        User[]
+  permissions  RolePermission[]
 
   @@unique([organisationId, name])
   @@index([organisationId])
   @@map("roles")
+}
+
+/// The fixed catalog of permission keys the app can enforce - "fixed" because a new permission
+/// key needs new enforcement code to actually check it (adding a row here alone does nothing).
+/// See docs/RBAC.md.
+model Permission {
+  key         String   @id
+  description String
+  createdAt   DateTime @default(now())
+
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+/// What roles-as-data actually means: a role's permissions are these rows, not an `if (role ===
+/// 'Manager')` branch in application code. Adding a new role (e.g. a future "Senior Associate")
+/// is then just a new Role row + new RolePermission rows - no enforcement code changes.
+model RolePermission {
+  id             String   @id @default(uuid())
+  organisationId String
+  roleId         String
+  permissionKey  String
+  createdAt      DateTime @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  role         Role         @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission   @relation(fields: [permissionKey], references: [key], onDelete: Cascade)
+
+  @@unique([roleId, permissionKey])
+  @@index([organisationId])
+  @@index([roleId])
+  @@index([permissionKey])
+  @@map("role_permissions")
 }
 
 model User {
