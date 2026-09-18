@@ -5,14 +5,21 @@ import { roleHasPermission } from '@/modules/kernel/rbac/permissions';
 
 export default async function ProtectedLayout({ children }: { children: ReactNode }) {
   const user = await requireUser();
-  // A hidden nav link is a UX nicety, not the real enforcement - the /departments page and its
-  // API routes check this same permission again independently either way.
+  // Hidden nav links are a UX nicety, not the real enforcement - each page and its API routes
+  // check the same permission again independently either way.
   const canViewDepartments = user.roleId
     ? await roleHasPermission(user.roleId, 'department:view')
     : false;
+  const canViewEmployees = user.roleId
+    ? await roleHasPermission(user.roleId, 'employee:view')
+    : false;
 
   return (
-    <AppShell userName={user.name} canViewDepartments={canViewDepartments}>
+    <AppShell
+      userName={user.name}
+      canViewDepartments={canViewDepartments}
+      canViewEmployees={canViewEmployees}
+    >
       {children}
     </AppShell>
   );

@@ -1,7 +1,12 @@
 import { afterAll, describe, expect, it } from 'vitest';
 import { db } from '@/modules/kernel/db';
 import { roleHasPermission } from '@/modules/kernel/rbac/permissions';
-import { seedDatabase } from './seed-data';
+import {
+  SEED_MANAGER_EMAIL,
+  SEED_OWNER_EMAIL,
+  SEED_PREPARER_EMAIL,
+  seedDatabase,
+} from './seed-data';
 
 describe('seedDatabase', () => {
   afterAll(async () => {
@@ -19,17 +24,23 @@ describe('seedDatabase', () => {
     expect(result.owner.email).toBe('owner@zelox.in');
   });
 
-  it('is idempotent: running it again does not create duplicates or throw', async () => {
+  it('is idempotent: running it again does not create duplicate seed rows', async () => {
     await seedDatabase();
     await seedDatabase();
 
-    const departmentCount = await db.department.count({
-      where: { organisationId: 'seed-org' },
-    });
-    const userCount = await db.user.count({ where: { organisationId: 'seed-org' } });
-
-    expect(departmentCount).toBe(3);
-    expect(userCount).toBe(3);
+    // Count each seeded row by its own name/email, not the organisation's total - 'seed-org'
+    // is the same org a human might be manually testing the running app against (creating
+    // their own departments/employees through the UI), so a DB-wide count isn't a reliable
+    // idempotency check. What idempotent actually means here: seedDatabase's own rows never
+    // duplicate, regardless of what else exists in the org.
+    for (const name of ['Accounts', 'Tax', 'Audit']) {
+      const count = await db.department.count({ where: { organisationId: 'seed-org', name } });
+      expect(count).toBe(1);
+    }
+    for (const email of [SEED_OWNER_EMAIL, SEED_MANAGER_EMAIL, SEED_PREPARER_EMAIL]) {
+      const count = await db.user.count({ where: { organisationId: 'seed-org', email } });
+      expect(count).toBe(1);
+    }
   }, 15_000);
 
   it('seeds the RBAC grants so the owner (Partner) can manage the organisation but a fresh Preparer role cannot', async () => {
