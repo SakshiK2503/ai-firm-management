@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { ZodError } from 'zod';
+import { logger } from './logging';
 
 export class ApiError extends Error {
   constructor(
@@ -28,6 +29,7 @@ export interface ApiErrorBody {
  */
 export function toApiErrorResponse(error: unknown): NextResponse<ApiErrorBody> {
   if (error instanceof ApiError) {
+    logger.warn({ code: error.code, statusCode: error.statusCode }, error.message);
     return NextResponse.json(
       { error: { code: error.code, message: error.message, details: error.details } },
       { status: error.statusCode },
@@ -46,6 +48,8 @@ export function toApiErrorResponse(error: unknown): NextResponse<ApiErrorBody> {
       { status: 400 },
     );
   }
+
+  logger.error({ err: error }, 'Unhandled API error');
 
   return NextResponse.json(
     { error: { code: 'INTERNAL_ERROR', message: 'Something went wrong.' } },

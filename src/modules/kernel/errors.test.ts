@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import { ApiError, toApiErrorResponse } from './errors';
+import { logger } from './logging';
 
 describe('toApiErrorResponse', () => {
   it('maps an ApiError to its own status/code/message', async () => {
@@ -32,5 +33,15 @@ describe('toApiErrorResponse', () => {
     expect(body).toEqual({
       error: { code: 'INTERNAL_ERROR', message: 'Something went wrong.' },
     });
+  });
+
+  it('logs a structured error entry when an unexpected error is handled', () => {
+    const errorSpy = vi.spyOn(logger, 'error').mockImplementation(() => undefined);
+    const thrown = new Error('boom');
+
+    toApiErrorResponse(thrown);
+
+    expect(errorSpy).toHaveBeenCalledWith({ err: thrown }, 'Unhandled API error');
+    errorSpy.mockRestore();
   });
 });
