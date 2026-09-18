@@ -10,6 +10,7 @@ const createEmployeeSchema = z.object({
   password: z.string().min(8, 'Password must be at least 8 characters'),
   departmentId: z.string().min(1, 'Department is required'),
   roleId: z.string().min(1, 'Role is required'),
+  managerId: z.string().min(1).optional(),
 });
 
 export async function GET(request: NextRequest) {

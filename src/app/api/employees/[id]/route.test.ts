@@ -157,4 +157,35 @@ describe('/api/employees/[id]', () => {
     const response = await patch(employeeId, { isActive: true }, preparerSessionId);
     expect(response.status).toBe(403);
   });
+
+  it('rejects assigning an employee as their own manager', async () => {
+    const response = await patch(employeeId, { managerId: employeeId }, partnerSessionId);
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.error.code).toBe('INVALID_MANAGER');
+  });
+
+  it('assigns and then clears a manager as a Partner', async () => {
+    const manager = await db.user.create({
+      data: {
+        organisationId,
+        email: `manager-${crypto.randomUUID()}@example.com`,
+        name: 'Manager Employee',
+        passwordHash: await hashPassword('irrelevant'),
+        departmentId,
+        roleId,
+      },
+    });
+
+    const assigned = await patch(employeeId, { managerId: manager.id }, partnerSessionId);
+    const assignedBody = await assigned.json();
+    expect(assigned.status).toBe(200);
+    expect(assignedBody.employee.manager.id).toBe(manager.id);
+
+    const cleared = await patch(employeeId, { managerId: null }, partnerSessionId);
+    const clearedBody = await cleared.json();
+    expect(cleared.status).toBe(200);
+    expect(clearedBody.employee.manager).toBeNull();
+  });
 });

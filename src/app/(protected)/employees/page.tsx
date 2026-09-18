@@ -18,7 +18,7 @@ export default async function EmployeesPage() {
   const canManage = user.roleId ? await roleHasPermission(user.roleId, 'employee:manage') : false;
   const employees = await listEmployees(user.organisationId, { includeInactive: true });
 
-  const [departments, roles] = canManage
+  const [departments, roles, potentialManagers] = canManage
     ? await Promise.all([
         db.department.findMany({
           where: { organisationId: user.organisationId, isActive: true },
@@ -30,8 +30,13 @@ export default async function EmployeesPage() {
           select: { id: true, name: true },
           orderBy: { name: 'asc' },
         }),
+        db.user.findMany({
+          where: { organisationId: user.organisationId, isActive: true },
+          select: { id: true, name: true },
+          orderBy: { name: 'asc' },
+        }),
       ])
-    : [[], []];
+    : [[], [], []];
 
   return (
     <EmployeesAdmin
@@ -39,6 +44,7 @@ export default async function EmployeesPage() {
       canManage={canManage}
       departments={departments}
       roles={roles}
+      potentialManagers={potentialManagers}
     />
   );
 }

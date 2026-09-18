@@ -11,6 +11,7 @@ interface Employee {
   isActive: boolean;
   department: { id: string; name: string } | null;
   role: { id: string; name: string } | null;
+  manager: { id: string; name: string } | null;
 }
 
 interface Option {
@@ -23,13 +24,16 @@ export function EmployeesAdmin({
   canManage,
   departments,
   roles,
+  potentialManagers,
 }: {
   initialEmployees: Employee[];
   canManage: boolean;
   departments: Option[];
   roles: Option[];
+  potentialManagers: Option[];
 }) {
   const [employees, setEmployees] = useState(initialEmployees);
+  const [managerOptions, setManagerOptions] = useState(potentialManagers);
   const [search, setSearch] = useState('');
   const [includeInactive, setIncludeInactive] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,6 +44,7 @@ export function EmployeesAdmin({
     password: '',
     departmentId: departments[0]?.id ?? '',
     roleId: roles[0]?.id ?? '',
+    managerId: '',
   });
 
   async function refresh(nextIncludeInactive: boolean, nextSearch: string) {
@@ -70,17 +75,26 @@ export function EmployeesAdmin({
     setSubmitting(true);
 
     try {
+      const { managerId, ...rest } = form;
       const response = await fetch('/api/employees', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify(managerId ? { ...rest, managerId } : rest),
       });
 
+      const body = await response.json();
       if (!response.ok) {
-        const body = await response.json();
         setError(body.error?.message ?? 'Something went wrong.');
         return;
       }
+
+      // The manager dropdown's options come from the server-rendered page load, so a newly
+      // created employee wouldn't otherwise be selectable as a manager until a full reload.
+      setManagerOptions((current) =>
+        [...current, { id: body.employee.id, name: body.employee.name }].sort((a, b) =>
+          a.name.localeCompare(b.name),
+        ),
+      );
 
       setForm({
         name: '',
@@ -88,6 +102,7 @@ export function EmployeesAdmin({
         password: '',
         departmentId: departments[0]?.id ?? '',
         roleId: roles[0]?.id ?? '',
+        managerId: '',
       });
       await refresh(includeInactive, search);
     } finally {
@@ -147,6 +162,18 @@ export function EmployeesAdmin({
               </option>
             ))}
           </select>
+          <select
+            value={form.managerId}
+            onChange={(event) => setForm({ ...form, managerId: event.target.value })}
+            aria-label="Manager"
+          >
+            <option value="">No manager</option>
+            {managerOptions.map((manager) => (
+              <option key={manager.id} value={manager.id}>
+                {manager.name}
+              </option>
+            ))}
+          </select>
           <button type="submit" disabled={isSubmitting}>
             {isSubmitting ? 'Adding…' : 'Add employee'}
           </button>
@@ -187,6 +214,7 @@ export function EmployeesAdmin({
               <th>Email</th>
               <th>Department</th>
               <th>Role</th>
+              <th>Manager</th>
               <th>Status</th>
             </tr>
           </thead>
@@ -199,6 +227,7 @@ export function EmployeesAdmin({
                 <td>{employee.email}</td>
                 <td>{employee.department?.name ?? '—'}</td>
                 <td>{employee.role?.name ?? '—'}</td>
+                <td>{employee.manager?.name ?? '—'}</td>
                 <td>{employee.isActive ? 'Active' : 'Inactive'}</td>
               </tr>
             ))}

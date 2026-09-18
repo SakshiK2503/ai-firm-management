@@ -173,4 +173,48 @@ describe('/api/employees', () => {
     const response = await get('http://localhost/api/employees');
     expect(response.status).toBe(401);
   });
+
+  it('creates an employee with a manager assigned, and rejects an unknown manager', async () => {
+    const manager = await db.user.create({
+      data: {
+        organisationId,
+        email: `manager-${crypto.randomUUID()}@example.com`,
+        name: 'Manager Employee',
+        passwordHash: await hashPassword('irrelevant'),
+        departmentId,
+        roleId,
+      },
+    });
+
+    const response = await post(
+      {
+        email: `managed-${crypto.randomUUID()}@example.com`,
+        name: 'Managed Employee',
+        password: 'a-strong-password',
+        departmentId,
+        roleId,
+        managerId: manager.id,
+      },
+      partnerSessionId,
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(201);
+    expect(body.employee.manager.id).toBe(manager.id);
+
+    const invalid = await post(
+      {
+        email: `unmanaged-${crypto.randomUUID()}@example.com`,
+        name: 'Unmanaged Employee',
+        password: 'a-strong-password',
+        departmentId,
+        roleId,
+        managerId: '00000000-0000-0000-0000-000000000000',
+      },
+      partnerSessionId,
+    );
+    const invalidBody = await invalid.json();
+    expect(invalid.status).toBe(400);
+    expect(invalidBody.error.code).toBe('INVALID_MANAGER');
+  });
 });

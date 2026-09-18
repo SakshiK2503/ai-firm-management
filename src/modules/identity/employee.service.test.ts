@@ -179,4 +179,86 @@ describe('employee service', () => {
       updateEmployee(organisationId, employee.id, { departmentId: disabledDepartmentId }),
     ).rejects.toMatchObject({ statusCode: 400, code: 'DEPARTMENT_DISABLED' });
   });
+
+  it('assigns a manager on create and on update, and rejects an unknown manager', async () => {
+    const manager = await createEmployee(organisationId, {
+      email: `manager-${crypto.randomUUID()}@example.com`,
+      name: 'Manager Person',
+      password: 'a-strong-password',
+      departmentId: activeDepartmentId,
+      roleId,
+    });
+
+    const report = await createEmployee(organisationId, {
+      email: `report-${crypto.randomUUID()}@example.com`,
+      name: 'Report Person',
+      password: 'a-strong-password',
+      departmentId: activeDepartmentId,
+      roleId,
+      managerId: manager.id,
+    });
+    expect(report.manager?.id).toBe(manager.id);
+
+    const reassigned = await updateEmployee(organisationId, report.id, { managerId: null });
+    expect(reassigned.manager).toBeNull();
+
+    await expect(
+      updateEmployee(organisationId, report.id, {
+        managerId: '00000000-0000-0000-0000-000000000000',
+      }),
+    ).rejects.toMatchObject({ statusCode: 400, code: 'INVALID_MANAGER' });
+  });
+
+  it('rejects an employee being their own manager', async () => {
+    const employee = await createEmployee(organisationId, {
+      email: `self-${crypto.randomUUID()}@example.com`,
+      name: 'Self Reporter',
+      password: 'a-strong-password',
+      departmentId: activeDepartmentId,
+      roleId,
+    });
+
+    await expect(
+      updateEmployee(organisationId, employee.id, { managerId: employee.id }),
+    ).rejects.toMatchObject({ statusCode: 400, code: 'INVALID_MANAGER' });
+  });
+
+  it('rejects a reporting chain that would form a cycle', async () => {
+    const a = await createEmployee(organisationId, {
+      email: `a-${crypto.randomUUID()}@example.com`,
+      name: 'A',
+      password: 'a-strong-password',
+      departmentId: activeDepartmentId,
+      roleId,
+    });
+    const b = await createEmployee(organisationId, {
+      email: `b-${crypto.randomUUID()}@example.com`,
+      name: 'B',
+      password: 'a-strong-password',
+      departmentId: activeDepartmentId,
+      roleId,
+      managerId: a.id,
+    });
+    const c = await createEmployee(organisationId, {
+      email: `c-${crypto.randomUUID()}@example.com`,
+      name: 'C',
+      password: 'a-strong-password',
+      departmentId: activeDepartmentId,
+      roleId,
+      managerId: b.id,
+    });
+
+    // Reporting chain is C -> B -> A (C reports to B, B reports to A).
+    // Direct cycle: B already reports to A, so A reporting to B is a 2-node loop.
+    await expect(updateEmployee(organisationId, a.id, { managerId: b.id })).rejects.toMatchObject({
+      statusCode: 400,
+      code: 'INVALID_MANAGER',
+    });
+
+    // Longer cycle: A reporting to C would close the loop A -> C -> B -> A.
+    await expect(updateEmployee(organisationId, a.id, { managerId: c.id })).rejects.toMatchObject({
+      statusCode: 400,
+      code: 'INVALID_MANAGER',
+    });
+  });
 });

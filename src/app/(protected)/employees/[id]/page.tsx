@@ -23,7 +23,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
   }
 
   const canManage = user.roleId ? await roleHasPermission(user.roleId, 'employee:manage') : false;
-  const [departments, roles] = canManage
+  const [departments, roles, potentialManagers] = canManage
     ? await Promise.all([
         db.department.findMany({
           where: { organisationId: user.organisationId, isActive: true },
@@ -35,8 +35,13 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
           select: { id: true, name: true },
           orderBy: { name: 'asc' },
         }),
+        db.user.findMany({
+          where: { organisationId: user.organisationId, isActive: true, id: { not: id } },
+          select: { id: true, name: true },
+          orderBy: { name: 'asc' },
+        }),
       ])
-    : [[], []];
+    : [[], [], []];
 
   return (
     <EmployeeDetail
@@ -44,6 +49,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
       canManage={canManage}
       departments={departments}
       roles={roles}
+      potentialManagers={potentialManagers}
     />
   );
 }

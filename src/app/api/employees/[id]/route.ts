@@ -10,6 +10,7 @@ const updateEmployeeSchema = z
     departmentId: z.string().min(1).optional(),
     roleId: z.string().min(1).optional(),
     isActive: z.boolean().optional(),
+    managerId: z.string().min(1).nullable().optional(),
   })
   .refine((data) => Object.keys(data).length > 0, {
     message: 'Provide at least one field to update.',

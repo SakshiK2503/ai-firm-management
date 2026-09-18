@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 import styles from './page.module.css';
@@ -11,6 +12,7 @@ interface Employee {
   isActive: boolean;
   department: { id: string; name: string } | null;
   role: { id: string; name: string } | null;
+  manager: { id: string; name: string } | null;
 }
 
 interface Option {
@@ -23,11 +25,13 @@ export function EmployeeDetail({
   canManage,
   departments,
   roles,
+  potentialManagers,
 }: {
   employee: Employee;
   canManage: boolean;
   departments: Option[];
   roles: Option[];
+  potentialManagers: Option[];
 }) {
   const router = useRouter();
   const [isEditing, setEditing] = useState(false);
@@ -38,6 +42,7 @@ export function EmployeeDetail({
     departmentId: employee.department?.id ?? '',
     roleId: employee.role?.id ?? '',
     isActive: employee.isActive,
+    managerId: employee.manager?.id ?? '',
   });
 
   async function handleSave(event: FormEvent) {
@@ -49,7 +54,7 @@ export function EmployeeDetail({
       const response = await fetch(`/api/employees/${employee.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, managerId: form.managerId || null }),
       });
 
       if (!response.ok) {
@@ -81,7 +86,13 @@ export function EmployeeDetail({
             <dt>Status</dt>
             <dd>{employee.isActive ? 'Active' : 'Inactive'}</dd>
             <dt>Manager</dt>
-            <dd>Not tracked yet — reporting structure lands in a future update.</dd>
+            <dd>
+              {employee.manager ? (
+                <Link href={`/employees/${employee.manager.id}`}>{employee.manager.name}</Link>
+              ) : (
+                '—'
+              )}
+            </dd>
           </dl>
           {canManage && (
             <button type="button" onClick={() => setEditing(true)}>
@@ -122,6 +133,21 @@ export function EmployeeDetail({
               {roles.map((role) => (
                 <option key={role.id} value={role.id}>
                   {role.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Manager
+            <select
+              value={form.managerId}
+              onChange={(event) => setForm({ ...form, managerId: event.target.value })}
+              aria-label="Manager"
+            >
+              <option value="">No manager</option>
+              {potentialManagers.map((manager) => (
+                <option key={manager.id} value={manager.id}>
+                  {manager.name}
                 </option>
               ))}
             </select>

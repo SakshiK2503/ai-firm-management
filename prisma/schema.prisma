@@ -100,6 +100,7 @@ model User {
   isActive       Boolean  @default(true)
   departmentId   String?
   roleId         String?
+  managerId      String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -107,11 +108,18 @@ model User {
   department   Department?  @relation(fields: [departmentId], references: [id])
   role         Role?        @relation(fields: [roleId], references: [id])
   sessions     Session[]
+  /// Self-referential reporting line. Nullable - not every employee has a manager assigned
+  /// (e.g. a Partner at the top of the chain). Cycle prevention (an employee can't end up in
+  /// their own reporting chain) is enforced in the service layer, not the schema - Postgres FKs
+  /// can't express "no cycles."
+  manager   User?  @relation("UserManager", fields: [managerId], references: [id])
+  directReports User[] @relation("UserManager")
 
   @@unique([organisationId, email])
   @@index([organisationId])
   @@index([departmentId])
   @@index([roleId])
+  @@index([managerId])
   @@map("users")
 }
 
