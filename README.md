@@ -7,9 +7,16 @@ for the module map, and [`docs/roadmap.xlsx`](./docs/roadmap.xlsx) (`Daily Plan`
 
 ```bash
 npm install
-cp .env.example .env.local   # fill in DATABASE_URL once Postgres is running (Day 4+)
+npx prisma dev -d -n ai-firm-management   # starts a local Postgres, prints a DATABASE_URL
+cp .env.example .env                       # then edit DATABASE_URL to match what prisma dev printed
+npx prisma migrate dev
 npm run dev
 ```
+
+`npx prisma dev` needs to be started once per machine reboot (`npx prisma dev ls` shows running
+servers, `npx prisma dev start ai-firm-management` restarts a stopped one). A Dockerized
+Postgres works too if you'd rather not use Prisma's built-in dev server — point `DATABASE_URL`
+at it instead.
 
 ## Scripts
 
@@ -17,6 +24,8 @@ npm run dev
 - `npm run lint` — ESLint
 - `npm run format` / `format:check` — Prettier
 - `npm run typecheck` — TypeScript, no emit
+- `npm run test` / `test:watch` — Vitest (unit/API)
+- `npm run test:e2e` — Playwright (E2E, needs system Chrome — see `playwright.config.ts`)
 
 ## Git workflow
 

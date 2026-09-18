@@ -44,3 +44,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/src/generated/prisma
+
+# AI-agent skill reference docs auto-installed by `prisma init` (duplicative across tools,
+# not part of this repo's own content) - left on disk but not committed.
+/.agents
+/.claude
+/.windsurf
+/skills-lock.json
