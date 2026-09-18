@@ -10,6 +10,20 @@ export function createSession(userId: string, organisationId: string) {
   });
 }
 
+/** Sliding expiry: extends a still-valid session by another full duration. Called on every
+ * successful getCurrentUser() check (see /api/auth/me) so an active session doesn't expire out
+ * from under someone mid-use. */
+export function refreshSession(sessionId: string) {
+  return db.session.update({
+    where: { id: sessionId },
+    data: { expiresAt: new Date(Date.now() + SESSION_DURATION_MS) },
+  });
+}
+
+export function destroySession(sessionId: string) {
+  return db.session.deleteMany({ where: { id: sessionId } });
+}
+
 /** Attaches the session cookie to an outgoing response. Uses NextResponse's own cookie jar
  * (not next/headers' cookies()) so this stays plain-object testable outside a real request. */
 export function attachSessionCookie(
@@ -38,5 +52,5 @@ export async function getCurrentUser(request: NextRequest) {
     return null;
   }
 
-  return session.user;
+  return { user: session.user, session };
 }

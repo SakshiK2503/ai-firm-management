@@ -59,6 +59,21 @@ describe('GET /api/auth/me', () => {
     expect(body.user.id).toBe(userId);
   });
 
+  it('slides the session expiry forward on a successful check', async () => {
+    const session = await db.session.create({
+      data: { userId, organisationId, expiresAt: new Date(Date.now() + 60_000) },
+    });
+
+    const response = await get(`${SESSION_COOKIE_NAME}=${session.id}`);
+    expect(response.status).toBe(200);
+
+    const refreshed = await db.session.findUniqueOrThrow({ where: { id: session.id } });
+    expect(refreshed.expiresAt.getTime()).toBeGreaterThan(session.expiresAt.getTime());
+
+    const setCookie = response.cookies.get(SESSION_COOKIE_NAME);
+    expect(setCookie?.value).toBe(session.id);
+  });
+
   it('returns 401 for an expired session', async () => {
     const session = await db.session.create({
       data: { userId, organisationId, expiresAt: new Date(Date.now() - 1000) },

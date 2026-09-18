@@ -15,6 +15,19 @@ test.describe('login page', () => {
     await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
   });
 
+  test('stays logged in across a page refresh', async ({ page }) => {
+    await page.goto('/login');
+    await page.getByLabel('Email').fill(SEED_OWNER_EMAIL);
+    await page.getByLabel('Password').fill(SEED_OWNER_PASSWORD);
+    await page.getByRole('button', { name: 'Sign in' }).click();
+    await expect(page).toHaveURL('/');
+
+    await page.reload();
+
+    await expect(page).toHaveURL('/');
+    await expect(page.getByRole('button', { name: /Log out/ })).toBeVisible();
+  });
+
   test('shows an error message for invalid credentials', async ({ page }) => {
     await page.goto('/login');
     await page.getByLabel('Email').fill(SEED_OWNER_EMAIL);
