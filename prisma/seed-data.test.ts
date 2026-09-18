@@ -9,8 +9,13 @@ import {
 } from './seed-data';
 
 describe('seedDatabase', () => {
+  // No cleanup of 'seed-org' here, deliberately: it's the same real organisation the running
+  // app, E2E tests, and the founder's manual testing all depend on - seedDatabase() is
+  // idempotent by design specifically so this test (and any other caller) can run it freely
+  // without ever needing to tear it down. Deleting it here previously wiped every real seed
+  // user (owner/manager/preparer) each time `npm run test` ran, which had been quietly breaking
+  // login for anyone testing right after a test run.
   afterAll(async () => {
-    await db.organisation.deleteMany({ where: { id: 'seed-org' } });
     await db.$disconnect();
   });
 

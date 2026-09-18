@@ -17,9 +17,14 @@ export default defineConfig({
     setupFiles: ['./vitest.setup.ts'],
     include: ['src/**/*.test.{ts,tsx}', 'prisma/**/*.test.ts'],
     exclude: ['e2e/**'],
-    // The local dev DB (PGlite via `prisma dev`) is a single embedded Postgres process that
-    // gets flaky ("Connection terminated unexpectedly") under concurrent connections from
-    // multiple Vitest worker processes. Run test files sequentially to avoid that.
+    // Dev DB is now hosted (Supabase) rather than the local embedded PGlite process this
+    // comment used to describe. Keeping file parallelism off regardless - Supabase's free-tier
+    // direct connection (port 5432, used for migrations/tests) has a low shared connection
+    // limit, and each Vitest worker file would otherwise open its own pg pool concurrently.
     fileParallelism: false,
+    // Real network round-trips to a hosted DB are slower than localhost - tests that make many
+    // sequential queries (seeding several rows, walking a reporting chain) can exceed Vitest's
+    // 5s default under that latency even though nothing is actually wrong.
+    testTimeout: 20000,
   },
 });

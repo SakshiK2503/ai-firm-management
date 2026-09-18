@@ -5,20 +5,33 @@ for the module map, and [`docs/roadmap.xlsx`](./docs/roadmap.xlsx) (`Daily Plan`
 
 ## Local development
 
+The dev database is a hosted Supabase Postgres project (switched from Prisma's local embedded
+`prisma dev`/PGlite server on 2026-09-19 — PGlite was unstable under sustained session load,
+repeatedly dropping connections; a real hosted Postgres doesn't have that problem). You don't
+need Supabase's anon/publishable/secret API keys for anything here — this project talks to
+Postgres directly via Prisma, not through Supabase's client SDK.
+
 ```bash
 npm install
-npx prisma dev -d -n ai-firm-management   # starts a local Postgres, prints a DATABASE_URL
 cp .env.example .env
 ```
 
-**Then open `.env` and replace the placeholder `DATABASE_URL` and `SHADOW_DATABASE_URL` with
-the ones `prisma dev` just printed** (they won't match — `.env.example`'s port/db-name are just
-a generic placeholder, not what `prisma dev` actually picked). Forgetting this step is the most
-common setup error: `prisma migrate deploy`/`dev` will fail with `P1001: Can't reach database
-server` if the port is wrong.
+**Open `.env` and fill in the real connection strings** from the Supabase project's dashboard
+(**Connect** button → connection string, or **Project Settings → Database**):
+
+- `DATABASE_URL` — the **direct connection** (port 5432) is simplest for a small project; add
+  `?sslmode=require&uselibpqcompat=true` (the `uselibpqcompat` flag matters — without it, `pg`
+  treats `sslmode=require` as `verify-full` and the connection fails with a self-signed
+  certificate error).
+- `SHADOW_DATABASE_URL` — Prisma Migrate needs a **separate** database to diff schema changes
+  into (never point this at the same database as `DATABASE_URL` — `migrate dev` creates/drops
+  the whole schema in it, which would wipe real data if they were the same). Supabase's pooled
+  connection can't create databases, but the direct connection can:
+  `CREATE DATABASE prisma_shadow;`, then point `SHADOW_DATABASE_URL` at that database with the
+  same host/port/query params.
 
 ```bash
-npx prisma migrate dev
+npx prisma migrate deploy   # applies existing migrations (use `migrate dev` only when authoring a new one)
 npm run db:seed
 npm run dev
 ```
@@ -32,11 +45,10 @@ credential — see `prisma/seed-data.ts`):
 | `manager@zelox.in`  | Manager  |
 | `preparer@zelox.in` | Preparer |
 
-`npx prisma dev` needs to be started once per machine reboot (`npx prisma dev ls` shows running
-servers — if `ai-firm-management` shows `not_running`, run `npx prisma dev start
-ai-firm-management` to bring back the _same_ connection string, no `.env` edit needed on
-restart). A Dockerized Postgres works too if you'd rather not use Prisma's built-in dev server —
-point `DATABASE_URL` at it instead.
+If login ever fails with these credentials, reseed (`npm run db:seed`) before assuming something
+is broken — `prisma/seed-data.test.ts` used to delete the real seed organisation as its own
+"cleanup" every time the unit test suite ran (fixed 2026-09-19), and it's generally safe to
+reseed since `seedDatabase()` is idempotent.
 
 ## Scripts
 
