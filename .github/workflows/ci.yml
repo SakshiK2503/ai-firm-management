@@ -50,6 +50,8 @@ jobs:
 
       - run: npm run build
 
+      - run: npm run verify:no-secrets
+
       - run: npm run db:seed
 
       - run: npm run test:e2e

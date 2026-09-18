@@ -1,13 +1,36 @@
 import { db } from '@/modules/kernel/db';
 import { hashPassword } from '@/modules/kernel/auth/password';
-import { PERMISSION_CATALOG, SYSTEM_ROLES } from '@/modules/kernel/rbac/permissions';
+import {
+  PERMISSION_CATALOG,
+  SYSTEM_ROLES,
+  type SystemRole,
+} from '@/modules/kernel/rbac/permissions';
 import { ROLE_PERMISSION_GRANTS, SYSTEM_ROLE_DISPLAY_NAMES } from './rbac-seed-data';
 
 const SEED_ORG_ID = 'seed-org';
 
-/** Dev-only seed credential - not a real secret, just a known login for local testing. */
+/** Dev-only seed credentials - not real secrets, just known logins for local testing. All three
+ * sample users share one password for convenience. */
 export const SEED_OWNER_EMAIL = 'owner@zelox.in';
+export const SEED_MANAGER_EMAIL = 'manager@zelox.in';
+export const SEED_PREPARER_EMAIL = 'preparer@zelox.in';
 export const SEED_OWNER_PASSWORD = 'ChangeMe123!';
+
+const SAMPLE_USERS: readonly {
+  email: string;
+  name: string;
+  systemRole: SystemRole;
+  departmentIndex: number;
+}[] = [
+  { email: SEED_OWNER_EMAIL, name: 'Firm Owner', systemRole: 'partner', departmentIndex: 0 },
+  { email: SEED_MANAGER_EMAIL, name: 'Sample Manager', systemRole: 'manager', departmentIndex: 0 },
+  {
+    email: SEED_PREPARER_EMAIL,
+    name: 'Sample Preparer',
+    systemRole: 'preparer',
+    departmentIndex: 1,
+  },
+];
 
 /** Idempotent: safe to run repeatedly against a non-empty database. */
 export async function seedDatabase() {
@@ -66,21 +89,28 @@ export async function seedDatabase() {
     }),
   });
 
-  const partnerRole = roleByName.get(SYSTEM_ROLE_DISPLAY_NAMES.partner);
-  if (!partnerRole) throw new Error('Seeded Partner role not found');
+  const passwordHash = await hashPassword(SEED_OWNER_PASSWORD);
+  const users = await Promise.all(
+    SAMPLE_USERS.map((sample) => {
+      const role = roleByName.get(SYSTEM_ROLE_DISPLAY_NAMES[sample.systemRole]);
+      if (!role) throw new Error(`Seeded role for "${sample.email}" not found`);
 
-  const owner = await db.user.upsert({
-    where: { organisationId_email: { organisationId: organisation.id, email: SEED_OWNER_EMAIL } },
-    update: {},
-    create: {
-      organisationId: organisation.id,
-      email: SEED_OWNER_EMAIL,
-      name: 'Firm Owner',
-      passwordHash: await hashPassword(SEED_OWNER_PASSWORD),
-      departmentId: departments[0].id,
-      roleId: partnerRole.id,
-    },
-  });
+      return db.user.upsert({
+        where: { organisationId_email: { organisationId: organisation.id, email: sample.email } },
+        update: {},
+        create: {
+          organisationId: organisation.id,
+          email: sample.email,
+          name: sample.name,
+          passwordHash,
+          departmentId: departments[sample.departmentIndex].id,
+          roleId: role.id,
+        },
+      });
+    }),
+  );
+  const owner = users.find((user) => user.email === SEED_OWNER_EMAIL);
+  if (!owner) throw new Error('Seeded owner user not found');
 
-  return { organisation, departments, roles, owner };
+  return { organisation, departments, roles, users, owner };
 }

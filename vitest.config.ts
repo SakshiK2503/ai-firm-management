@@ -4,6 +4,13 @@ import tsconfigPaths from 'vite-tsconfig-paths';
 
 export default defineConfig({
   plugins: [tsconfigPaths(), react()],
+  resolve: {
+    alias: {
+      // Vitest has no client/server split like Next's webpack config, so `server-only`'s real
+      // throwing implementation doesn't apply - see vitest.server-only-shim.ts.
+      'server-only': new URL('./vitest.server-only-shim.ts', import.meta.url).pathname,
+    },
+  },
   test: {
     environment: 'jsdom',
     globals: true,

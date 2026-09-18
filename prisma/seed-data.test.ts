@@ -9,12 +9,13 @@ describe('seedDatabase', () => {
     await db.$disconnect();
   });
 
-  it('seeds an organisation with departments, roles, and an owner user', async () => {
+  it('seeds an organisation with departments, roles, and sample users for each role', async () => {
     const result = await seedDatabase();
 
     expect(result.organisation.name).toBe('Zelox & Co');
     expect(result.departments).toHaveLength(3);
     expect(result.roles).toHaveLength(3);
+    expect(result.users).toHaveLength(3);
     expect(result.owner.email).toBe('owner@zelox.in');
   });
 
@@ -28,7 +29,7 @@ describe('seedDatabase', () => {
     const userCount = await db.user.count({ where: { organisationId: 'seed-org' } });
 
     expect(departmentCount).toBe(3);
-    expect(userCount).toBe(1);
+    expect(userCount).toBe(3);
   });
 
   it('seeds the RBAC grants so the owner (Partner) can manage the organisation but a fresh Preparer role cannot', async () => {

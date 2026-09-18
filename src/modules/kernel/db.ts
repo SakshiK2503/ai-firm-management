@@ -1,6 +1,13 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@/generated/prisma/client';
 
+// No `server-only` guard here (unlike session.ts): prisma/seed-data.ts and one-off debug
+// scripts legitimately import this outside the Next.js app. It's still protected from
+// accidental client bundling in practice - @prisma/client and pg depend on Node's net/tls,
+// which Next's client webpack build can't bundle at all, so a Client Component importing this
+// fails to build immediately. See scripts/check-no-secrets-in-client-bundle.ts for the
+// verification.
+
 declare global {
   var prismaClient: PrismaClient | undefined;
 }

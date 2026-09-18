@@ -23,8 +23,14 @@ npm run db:seed
 npm run dev
 ```
 
-Sign in at `/login` with the seed user: `owner@zelox.in` / `ChangeMe123!` (a dev-only password,
-not a real secret — see `prisma/seed-data.ts`).
+Sign in at `/login` with a seed user (all share the password `ChangeMe123!`, a dev-only
+credential — see `prisma/seed-data.ts`):
+
+| Email               | Role     |
+| ------------------- | -------- |
+| `owner@zelox.in`    | Partner  |
+| `manager@zelox.in`  | Manager  |
+| `preparer@zelox.in` | Preparer |
 
 `npx prisma dev` needs to be started once per machine reboot (`npx prisma dev ls` shows running
 servers — if `ai-firm-management` shows `not_running`, run `npx prisma dev start
@@ -40,6 +46,8 @@ point `DATABASE_URL` at it instead.
 - `npm run typecheck` — TypeScript, no emit
 - `npm run test` / `test:watch` — Vitest (unit/API)
 - `npm run test:e2e` — Playwright (E2E, needs system Chrome — see `playwright.config.ts`)
+- `npm run verify:no-secrets` — scans the built client bundle for `DATABASE_URL`/
+  `SHADOW_DATABASE_URL`; run after `npm run build`
 
 ## Git workflow
 
