@@ -13,6 +13,7 @@ describe('identity core schema', () => {
 
   afterAll(async () => {
     await db.organisation.delete({ where: { id: organisationId } });
+    await db.$disconnect();
   });
 
   it('creates and reads a department scoped to the organisation', async () => {
