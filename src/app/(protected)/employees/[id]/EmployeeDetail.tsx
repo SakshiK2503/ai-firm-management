@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
+import { extractErrorMessage } from '@/modules/kernel/api-client';
 import styles from './page.module.css';
 
 interface Employee {
@@ -59,7 +60,7 @@ export function EmployeeDetail({
 
       if (!response.ok) {
         const body = await response.json();
-        setError(body.error?.message ?? 'Something went wrong.');
+        setError(extractErrorMessage(body));
         return;
       }
 

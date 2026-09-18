@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
+import { extractErrorMessage } from '@/modules/kernel/api-client';
 import styles from './page.module.css';
 
 interface Department {
@@ -42,7 +43,7 @@ export function DepartmentsAdmin({ initialDepartments }: { initialDepartments: D
 
       if (!response.ok) {
         const body = await response.json();
-        setError(body.error?.message ?? 'Something went wrong.');
+        setError(extractErrorMessage(body));
         return;
       }
 

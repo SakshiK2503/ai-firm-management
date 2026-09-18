@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState, type FormEvent } from 'react';
+import { extractErrorMessage } from '@/modules/kernel/api-client';
 import styles from './page.module.css';
 
 interface Employee {
@@ -84,7 +85,7 @@ export function EmployeesAdmin({
 
       const body = await response.json();
       if (!response.ok) {
-        setError(body.error?.message ?? 'Something went wrong.');
+        setError(extractErrorMessage(body));
         return;
       }
 
