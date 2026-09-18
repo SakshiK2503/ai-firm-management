@@ -27,16 +27,19 @@ row plus a new set of `RolePermission` grants — zero enforcement code touched.
 version, which this avoids, is the role name scattered through dozens of `if` statements across
 the codebase.
 
-## Deviation from a fuller PRD role hierarchy — a conscious simplification
+## Deviation from the PRD's role hierarchy — a conscious simplification
 
-If a fuller PRD describes five internal roles (Super Admin, Management/Partner, Department
-Head, Manager/Reviewer, Employee), this design collapses that to three: **Partner absorbs Super
-Admin and Department Head**. That means Partner is currently both the operational leadership
-role _and_ the system-configuration account (organisation settings, departments, employees,
-service catalogue). This is a reasonable simplification for a smaller firm, made consciously
-here rather than discovered later — flagging it so it isn't mistaken for an oversight. Splitting
-Partner into separate "Super Admin" and "Department Head" roles later is exactly the kind of
-change the data-driven model above makes cheap: new roles, new grants, no code changes.
+`docs/PRD.md` §5 defines five internal roles: Super Administrator (§5.1), Management/Partner/
+Director (§5.2), Department Head (§5.3), Manager/Reviewer (§5.4), Employee/Maker (§5.5) - plus
+a future-phase Client User (§5.6, explicitly "not necessary for MVP", so out of scope here too.
+This design collapses the first three into one: **Partner absorbs Super Administrator and
+Department Head**. That means Partner is currently both the operational leadership role _and_
+the system-configuration account (organisation settings, departments, employees, service
+catalogue - §5.1's list). This is a reasonable simplification for a smaller firm, made
+consciously here rather than discovered later - flagging it so it isn't mistaken for an
+oversight. Splitting Partner into separate Super Admin and Department Head roles later is
+exactly the kind of change the data-driven model above makes cheap: new roles, new grants, no
+code changes.
 
 ## Permission catalog
 

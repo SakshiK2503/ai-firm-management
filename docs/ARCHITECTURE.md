@@ -5,10 +5,18 @@ OS, so that the 167-day build (`docs/roadmap.xlsx`, tab `Daily Plan`) has a plac
 feature to live without later modules creating circular dependencies on earlier ones.
 
 Source for the module list: the 19 phases in `Daily Plan` (Foundation through Integrations &
-Production). No fuller PRD document exists in this repo yet — `docs/PRD.md` is a changelog of
-what changed between roadmap v1 and v2, not the underlying spec. Module responsibilities below
-are inferred from the Daily Plan's `Feature` / `Build / Focus` columns and the non-negotiable
-principles in `CLAUDE.md`. If a real PRD doc surfaces later, re-check this map against it.
+Production). Written before the full PRD was available in this repo, so module
+responsibilities were originally inferred from the Daily Plan's `Feature` / `Build / Focus`
+columns and the non-negotiable principles in `CLAUDE.md`.
+
+**Update (2026-09-18):** the founder provided the actual PRD - now at `docs/PRD.md`, with its
+architecture diagrams in `docs/prd-diagrams/` (the changelog that used to live at `docs/PRD.md`
+moved to `docs/roadmap-changelog.md`, matching what `CLAUDE.md` already called it). Cross-checked
+this module map against it: the PRD's own "six engines" framing (§52 - Intake, Workflow,
+Allocation, Knowledge, Intelligence, Agent) lines up with the five-layer map below without
+requiring changes. Worth a closer re-read once Communication & AI Intake (Day 95+) is actually
+being designed - the PRD treats `Communication` as its own persisted entity (§38), not just
+something the `intake` module processes in passing.
 
 ## Layering
 
