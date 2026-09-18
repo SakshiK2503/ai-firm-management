@@ -6,3 +6,72 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+/// The tenant root. Every other table carries organisationId scoping to it, even though only
+/// one organisation exists today - see docs/ARCHITECTURE.md and CLAUDE.md's multi-tenant-ready
+/// principle.
+model Organisation {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  departments Department[]
+  roles       Role[]
+  users       User[]
+
+  @@map("organisations")
+}
+
+model Department {
+  id             String   @id @default(uuid())
+  organisationId String
+  name           String
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  users        User[]
+
+  @@unique([organisationId, name])
+  @@index([organisationId])
+  @@map("departments")
+}
+
+model Role {
+  id             String   @id @default(uuid())
+  organisationId String
+  name           String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  users        User[]
+
+  @@unique([organisationId, name])
+  @@index([organisationId])
+  @@map("roles")
+}
+
+model User {
+  id             String   @id @default(uuid())
+  organisationId String
+  email          String
+  name           String
+  isActive       Boolean  @default(true)
+  departmentId   String?
+  roleId         String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  department   Department?  @relation(fields: [departmentId], references: [id])
+  role         Role?        @relation(fields: [roleId], references: [id])
+
+  @@unique([organisationId, email])
+  @@index([organisationId])
+  @@index([departmentId])
+  @@index([roleId])
+  @@map("users")
+}
