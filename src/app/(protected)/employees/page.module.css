@@ -16,6 +16,15 @@
   font-size: 0.95rem;
 }
 
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  color: var(--foreground);
+  opacity: 0.8;
+}
+
 .createForm button {
   padding: 0.5rem 0.875rem;
   border: none;

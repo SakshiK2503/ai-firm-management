@@ -141,40 +141,49 @@ export function EmployeesAdmin({
             aria-label="Temporary password"
             required
           />
-          <select
-            value={form.departmentId}
-            onChange={(event) => setForm({ ...form, departmentId: event.target.value })}
-            aria-label="Department"
-          >
-            {departments.map((department) => (
-              <option key={department.id} value={department.id}>
-                {department.name}
-              </option>
-            ))}
-          </select>
-          <select
-            value={form.roleId}
-            onChange={(event) => setForm({ ...form, roleId: event.target.value })}
-            aria-label="Role"
-          >
-            {roles.map((role) => (
-              <option key={role.id} value={role.id}>
-                {role.name}
-              </option>
-            ))}
-          </select>
-          <select
-            value={form.managerId}
-            onChange={(event) => setForm({ ...form, managerId: event.target.value })}
-            aria-label="Manager"
-          >
-            <option value="">No manager</option>
-            {managerOptions.map((manager) => (
-              <option key={manager.id} value={manager.id}>
-                {manager.name}
-              </option>
-            ))}
-          </select>
+          <label className={styles.field}>
+            Department
+            <select
+              value={form.departmentId}
+              onChange={(event) => setForm({ ...form, departmentId: event.target.value })}
+              aria-label="Department"
+            >
+              {departments.map((department) => (
+                <option key={department.id} value={department.id}>
+                  {department.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className={styles.field}>
+            Role
+            <select
+              value={form.roleId}
+              onChange={(event) => setForm({ ...form, roleId: event.target.value })}
+              aria-label="Role"
+            >
+              {roles.map((role) => (
+                <option key={role.id} value={role.id}>
+                  {role.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className={styles.field}>
+            Manager
+            <select
+              value={form.managerId}
+              onChange={(event) => setForm({ ...form, managerId: event.target.value })}
+              aria-label="Manager"
+            >
+              <option value="">No manager</option>
+              {managerOptions.map((manager) => (
+                <option key={manager.id} value={manager.id}>
+                  {manager.name}
+                </option>
+              ))}
+            </select>
+          </label>
           <button type="submit" disabled={isSubmitting}>
             {isSubmitting ? 'Adding…' : 'Add employee'}
           </button>

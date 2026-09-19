@@ -81,7 +81,7 @@ export function EmployeeAvailability({
   }
 
   return (
-    <section>
+    <section className={styles.section}>
       <h2>Availability</h2>
 
       {availability.length === 0 ? (
@@ -119,38 +119,52 @@ export function EmployeeAvailability({
 
       {canManage && (
         <form onSubmit={handleCreate} className={styles.createForm}>
-          <select
-            value={form.type}
-            onChange={(event) => setForm({ ...form, type: event.target.value as AvailabilityType })}
-            aria-label="Type"
-          >
-            {AVAILABILITY_TYPES.map((type) => (
-              <option key={type} value={type}>
-                {type}
-              </option>
-            ))}
-          </select>
-          <input
-            type="date"
-            value={form.startDate}
-            onChange={(event) => setForm({ ...form, startDate: event.target.value })}
-            aria-label="Start date"
-            required
-          />
-          <input
-            type="date"
-            value={form.endDate}
-            onChange={(event) => setForm({ ...form, endDate: event.target.value })}
-            aria-label="End date"
-            required
-          />
-          <input
-            type="text"
-            value={form.reason}
-            onChange={(event) => setForm({ ...form, reason: event.target.value })}
-            placeholder="Reason (optional)"
-            aria-label="Reason"
-          />
+          <label className={styles.field}>
+            Type
+            <select
+              value={form.type}
+              onChange={(event) =>
+                setForm({ ...form, type: event.target.value as AvailabilityType })
+              }
+              aria-label="Type"
+            >
+              {AVAILABILITY_TYPES.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className={styles.field}>
+            Start date
+            <input
+              type="date"
+              value={form.startDate}
+              onChange={(event) => setForm({ ...form, startDate: event.target.value })}
+              aria-label="Start date"
+              required
+            />
+          </label>
+          <label className={styles.field}>
+            End date
+            <input
+              type="date"
+              value={form.endDate}
+              onChange={(event) => setForm({ ...form, endDate: event.target.value })}
+              aria-label="End date"
+              required
+            />
+          </label>
+          <label className={styles.field}>
+            Reason
+            <input
+              type="text"
+              value={form.reason}
+              onChange={(event) => setForm({ ...form, reason: event.target.value })}
+              placeholder="Optional"
+              aria-label="Reason"
+            />
+          </label>
           <button type="submit" disabled={isSubmitting}>
             {isSubmitting ? 'Adding…' : 'Add record'}
           </button>

@@ -82,7 +82,7 @@ export function EmployeeSkills({
   }
 
   return (
-    <section>
+    <section className={styles.section}>
       <h2>Skills</h2>
 
       {skills.length === 0 ? (
@@ -116,28 +116,34 @@ export function EmployeeSkills({
 
       {canManage && assignableSkills.length > 0 && (
         <form onSubmit={handleAssign} className={styles.createForm}>
-          <select
-            value={form.skillId}
-            onChange={(event) => setForm({ ...form, skillId: event.target.value })}
-            aria-label="Skill"
-          >
-            {assignableSkills.map((skill) => (
-              <option key={skill.id} value={skill.id}>
-                {skill.name}
-              </option>
-            ))}
-          </select>
-          <select
-            value={form.level}
-            onChange={(event) => setForm({ ...form, level: event.target.value as SkillLevel })}
-            aria-label="Level"
-          >
-            {SKILL_LEVELS.map((level) => (
-              <option key={level} value={level}>
-                {level}
-              </option>
-            ))}
-          </select>
+          <label className={styles.field}>
+            Skill
+            <select
+              value={form.skillId}
+              onChange={(event) => setForm({ ...form, skillId: event.target.value })}
+              aria-label="Skill"
+            >
+              {assignableSkills.map((skill) => (
+                <option key={skill.id} value={skill.id}>
+                  {skill.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className={styles.field}>
+            Level
+            <select
+              value={form.level}
+              onChange={(event) => setForm({ ...form, level: event.target.value as SkillLevel })}
+              aria-label="Level"
+            >
+              {SKILL_LEVELS.map((level) => (
+                <option key={level} value={level}>
+                  {level}
+                </option>
+              ))}
+            </select>
+          </label>
           <button type="submit" disabled={isSubmitting}>
             {isSubmitting ? 'Adding…' : 'Add skill'}
           </button>
