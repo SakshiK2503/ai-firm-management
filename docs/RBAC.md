@@ -127,12 +127,12 @@ literally starts with Manager's — so it can't silently drift apart, and tested
 Two separate scoping problems this design names but does not solve, because the underlying
 tables don't exist yet:
 
-1. **Client scoping.** A Preparer's `client:view` should mean "clients tied to tasks currently
-   or previously assigned to me," not "every client in the firm" — per the explicit "employees
-   should not have unrestricted access to all client information" requirement. There's no
-   `Client` or `Task` table yet (Client Management is Day 28+, Task Engine is Day 44+), so this
-   can't be enforced today; it's a query-level filter those days need to build, not just a
-   boolean permission check.
+1. **Client scoping (partially addressed Day 28).** The `Client` table now exists, and
+   `listClients`/`getClient` do split on `client:viewAll` vs plain `client:view` - but there's
+   still no `Task` table (Day 44+) to compute "assigned to me" against, so a `client:view`-only
+   role (Preparer) gets an _empty_ result rather than firm-wide access. That's the honest
+   interim behaviour, not the final one: once Task exists, "assigned" scope needs to become a
+   real query against task assignments instead of an unconditional empty list.
 2. **Department scoping.** A Manager's `viewAll`/`reassign` etc. are firm-wide here, same as
    Partner, because nothing attaches a department to a Task in an enforceable way yet, and
    there's no "manager of department X" concept beyond a User having one `departmentId`. Also a

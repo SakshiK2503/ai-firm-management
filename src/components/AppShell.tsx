@@ -4,7 +4,7 @@ import { useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './AppShell.module.css';
 
-const NAV_PLACEHOLDERS = ['Clients', 'Tasks', 'Documents'];
+const NAV_PLACEHOLDERS = ['Tasks', 'Documents'];
 
 export function AppShell({
   children,
@@ -12,12 +12,14 @@ export function AppShell({
   canViewDepartments,
   canViewEmployees,
   canViewSkills,
+  canViewClients,
 }: {
   children: ReactNode;
   userName: string;
   canViewDepartments: boolean;
   canViewEmployees: boolean;
   canViewSkills: boolean;
+  canViewClients: boolean;
 }) {
   const router = useRouter();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
@@ -27,6 +29,7 @@ export function AppShell({
     ...(canViewDepartments ? [{ href: '/departments', label: 'Departments' }] : []),
     ...(canViewEmployees ? [{ href: '/employees', label: 'Employees' }] : []),
     ...(canViewSkills ? [{ href: '/skills', label: 'Skills' }] : []),
+    ...(canViewClients ? [{ href: '/clients', label: 'Clients' }] : []),
   ];
 
   async function handleLogout() {

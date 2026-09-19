@@ -24,6 +24,7 @@ model Organisation {
   skills          Skill[]
   employeeSkills  EmployeeSkill[]
   availabilities  Availability[]
+  clients         Client[]
 
   @@map("organisations")
 }
@@ -223,4 +224,23 @@ model Availability {
   @@index([organisationId])
   @@index([userId])
   @@map("availabilities")
+}
+
+/// The client/group master (PRD §6's top-level "Client/group", e.g. "ABC Group"). Deliberately
+/// minimal - the PRD's per-entity fields (PAN, GSTIN, CIN, billing structure, etc.) belong to
+/// the legal entities *under* a client/group, which is a separate later day (Day 32), not this
+/// one. Contacts (Day 34) and engagements (Day 35) are separate too.
+model Client {
+  id             String   @id @default(uuid())
+  organisationId String
+  name           String
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  @@unique([organisationId, name])
+  @@index([organisationId])
+  @@map("clients")
 }
