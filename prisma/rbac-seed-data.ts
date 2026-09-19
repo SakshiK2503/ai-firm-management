@@ -43,6 +43,8 @@ const MANAGER_PERMISSIONS: readonly Permission[] = [
   'client:editContact',
   'service:view',
   'employee:view',
+  'skill:view',
+  'availability:view',
   'allocation:override',
 ];
 
@@ -55,6 +57,8 @@ const PARTNER_PERMISSIONS: readonly Permission[] = [
   'service:manage',
   'client:editStructural',
   'auditLog:view',
+  'skill:manage',
+  'availability:manage',
 ];
 
 export const ROLE_PERMISSION_GRANTS: Readonly<Record<SystemRole, readonly Permission[]>> = {

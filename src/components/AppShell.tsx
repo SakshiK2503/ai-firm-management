@@ -11,11 +11,13 @@ export function AppShell({
   userName,
   canViewDepartments,
   canViewEmployees,
+  canViewSkills,
 }: {
   children: ReactNode;
   userName: string;
   canViewDepartments: boolean;
   canViewEmployees: boolean;
+  canViewSkills: boolean;
 }) {
   const router = useRouter();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
@@ -24,6 +26,7 @@ export function AppShell({
     { href: '/', label: 'Dashboard' },
     ...(canViewDepartments ? [{ href: '/departments', label: 'Departments' }] : []),
     ...(canViewEmployees ? [{ href: '/employees', label: 'Employees' }] : []),
+    ...(canViewSkills ? [{ href: '/skills', label: 'Skills' }] : []),
   ];
 
   async function handleLogout() {

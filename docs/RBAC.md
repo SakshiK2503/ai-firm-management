@@ -109,11 +109,15 @@ literally starts with Manager's — so it can't silently drift apart, and tested
 | `client:editContact`          |          | ✅      | ✅      |
 | `service:view`                |          | ✅      | ✅      |
 | `employee:view`               |          | ✅      | ✅      |
+| `skill:view`                  |          | ✅      | ✅      |
+| `availability:view`           |          | ✅      | ✅      |
 | `allocation:override`         |          | ✅      | ✅      |
 | `organisation:manage`         |          |         | ✅      |
 | `department:view`             |          |         | ✅      |
 | `department:manage`           |          |         | ✅      |
 | `employee:manage`             |          |         | ✅      |
+| `skill:manage`                |          |         | ✅      |
+| `availability:manage`         |          |         | ✅      |
 | `service:manage`              |          |         | ✅      |
 | `client:editStructural`       |          |         | ✅      |
 | `auditLog:view`               |          |         | ✅      |

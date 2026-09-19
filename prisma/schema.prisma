@@ -21,6 +21,9 @@ model Organisation {
   users           User[]
   sessions        Session[]
   rolePermissions RolePermission[]
+  skills          Skill[]
+  employeeSkills  EmployeeSkill[]
+  availabilities  Availability[]
 
   @@map("organisations")
 }
@@ -114,6 +117,8 @@ model User {
   /// can't express "no cycles."
   manager   User?  @relation("UserManager", fields: [managerId], references: [id])
   directReports User[] @relation("UserManager")
+  employeeSkills EmployeeSkill[]
+  availabilities Availability[]
 
   @@unique([organisationId, email])
   @@index([organisationId])
@@ -139,4 +144,83 @@ model Session {
   @@index([organisationId])
   @@index([userId])
   @@map("sessions")
+}
+
+/// The skill catalogue (PRD's "Employee Skill | Capability matrix" core entity). This is the
+/// baseline data model only - the actual skills-matrix-driven allocation scoring is PRD Version
+/// 3 (Intelligent Allocation), long after this; Days 25-26 just get the data captured so it
+/// exists when that's built.
+model Skill {
+  id             String   @id @default(uuid())
+  organisationId String
+  name           String
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organisation   Organisation    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  employeeSkills EmployeeSkill[]
+
+  @@unique([organisationId, name])
+  @@index([organisationId])
+  @@map("skills")
+}
+
+enum SkillLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+}
+
+/// One employee's proficiency at one skill. Re-assigning the same skill to the same employee
+/// updates the level rather than erroring - a skill level changing over time is the normal case,
+/// not a conflict.
+model EmployeeSkill {
+  id             String     @id @default(uuid())
+  organisationId String
+  userId         String
+  skillId        String
+  level          SkillLevel
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill        Skill        @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, skillId])
+  @@index([organisationId])
+  @@index([userId])
+  @@index([skillId])
+  @@map("employee_skills")
+}
+
+enum AvailabilityType {
+  LEAVE
+  SICK
+  UNAVAILABLE
+}
+
+/// Baseline leave/unavailability record (Day 27). "Rules enforced" at this stage means the
+/// record itself has to make sense - valid date order, no overlapping periods for the same
+/// employee - not task-aware blocking, since Task doesn't exist yet. Leave/availability
+/// consideration in the actual allocation score is PRD Version 3, same as Skill above.
+model Availability {
+  id             String           @id @default(uuid())
+  organisationId String
+  userId         String
+  type           AvailabilityType
+  startDate      DateTime         @db.Date
+  endDate        DateTime         @db.Date
+  reason         String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId])
+  @@index([userId])
+  @@map("availabilities")
 }

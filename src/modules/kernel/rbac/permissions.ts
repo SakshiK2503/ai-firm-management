@@ -19,6 +19,16 @@ export const PERMISSION_CATALOG = [
   { key: 'department:manage', description: 'Create, edit, and disable departments' },
   { key: 'employee:view', description: 'View employee directory' },
   { key: 'employee:manage', description: 'Create, edit, and deactivate employees' },
+  { key: 'skill:view', description: 'View the skill catalogue and employee skill assignments' },
+  {
+    key: 'skill:manage',
+    description: 'Create, edit, and disable skills; assign or remove an employee’s skills',
+  },
+  { key: 'availability:view', description: 'View employee availability and leave records' },
+  {
+    key: 'availability:manage',
+    description: 'Create, edit, and delete employee availability and leave records',
+  },
   { key: 'client:view', description: 'View clients assigned to you' },
   { key: 'client:viewAll', description: 'View all clients firm-wide' },
   {
