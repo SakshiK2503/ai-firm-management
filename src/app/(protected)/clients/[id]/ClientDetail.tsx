@@ -97,8 +97,8 @@ export function ClientDetail({ client, canManage }: { client: Client; canManage:
         </form>
       )}
 
-      <section className={styles.section}>
-        <p>Legal entities, contacts, and engagements land in later roadmap days.</p>
+      <section className={styles.placeholder}>
+        <p>Contacts and engagements land in later roadmap days.</p>
       </section>
     </div>
   );

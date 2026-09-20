@@ -25,6 +25,7 @@ model Organisation {
   employeeSkills  EmployeeSkill[]
   availabilities  Availability[]
   clients         Client[]
+  clientEntities  ClientEntity[]
 
   @@map("organisations")
 }
@@ -120,6 +121,7 @@ model User {
   directReports User[] @relation("UserManager")
   employeeSkills EmployeeSkill[]
   availabilities Availability[]
+  managedEntities ClientEntity[]
 
   @@unique([organisationId, email])
   @@index([organisationId])
@@ -239,8 +241,46 @@ model Client {
   updatedAt      DateTime @updatedAt
 
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  entities     ClientEntity[]
 
   @@unique([organisationId, name])
   @@index([organisationId])
   @@map("clients")
+}
+
+/// A legal entity under a client/group (PRD §6, e.g. "ABC Private Limited" under "ABC Group").
+/// Carries the compliance-identity fields the PRD lists per entity (PAN/GSTIN/CIN) - deliberately
+/// still missing Primary Contact (Contact model, Day 34) and Services/Billing/Engagement Start
+/// (Engagement model, Day 35), which the PRD lists on the same entity but depend on tables that
+/// don't exist yet.
+model ClientEntity {
+  id                String   @id @default(uuid())
+  organisationId    String
+  clientId          String
+  name              String
+  pan               String?
+  gstin             String?
+  cin               String?
+  accountManagerId  String?
+  phone             String?
+  email             String?
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  organisation   Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  client         Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  accountManager User?        @relation(fields: [accountManagerId], references: [id])
+
+  // PAN/GSTIN are national tax-identity numbers - genuinely unique per legal entity, so a
+  // duplicate is a real data-entry error worth catching, not just noise. Postgres treats
+  // multiple NULLs in a unique index as distinct, so entities without a PAN/GSTIN yet don't
+  // conflict with each other.
+  @@unique([clientId, name])
+  @@unique([organisationId, pan])
+  @@unique([organisationId, gstin])
+  @@index([organisationId])
+  @@index([clientId])
+  @@index([accountManagerId])
+  @@map("client_entities")
 }

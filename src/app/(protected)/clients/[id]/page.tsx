@@ -2,7 +2,10 @@ import { notFound } from 'next/navigation';
 import { requireUserWithPermission } from '@/modules/kernel/rbac/enforce';
 import { roleHasPermission } from '@/modules/kernel/rbac/permissions';
 import { getClient } from '@/modules/clients/client.service';
+import { listEntitiesForClient } from '@/modules/clients/entity.service';
+import { listEmployees } from '@/modules/identity/employee.service';
 import { ClientDetail } from './ClientDetail';
+import { ClientEntities } from './ClientEntities';
 
 export default async function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { user, allowed } = await requireUserWithPermission('client:view');
@@ -32,10 +35,23 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
     ? await roleHasPermission(user.roleId, 'client:editStructural')
     : false;
 
+  const [entities, employees] = await Promise.all([
+    listEntitiesForClient(user.organisationId, id),
+    canManage ? listEmployees(user.organisationId) : Promise.resolve([]),
+  ]);
+
   return (
-    <ClientDetail
-      client={{ ...client, createdAt: client.createdAt.toISOString() }}
-      canManage={canManage}
-    />
+    <>
+      <ClientDetail
+        client={{ ...client, createdAt: client.createdAt.toISOString() }}
+        canManage={canManage}
+      />
+      <ClientEntities
+        clientId={id}
+        initialEntities={entities}
+        employees={employees}
+        canManage={canManage}
+      />
+    </>
   );
 }
