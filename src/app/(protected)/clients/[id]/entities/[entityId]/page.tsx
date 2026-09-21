@@ -2,8 +2,10 @@ import { notFound } from 'next/navigation';
 import { requireUserWithPermission } from '@/modules/kernel/rbac/enforce';
 import { roleHasPermission } from '@/modules/kernel/rbac/permissions';
 import { getEntity } from '@/modules/clients/entity.service';
+import { listContactsForEntity } from '@/modules/clients/contact.service';
 import { listEmployees } from '@/modules/identity/employee.service';
 import { EntityDetail } from './EntityDetail';
+import { EntityContacts } from './EntityContacts';
 
 export default async function EntityDetailPage({
   params,
@@ -36,7 +38,30 @@ export default async function EntityDetailPage({
   const canManage = user.roleId
     ? await roleHasPermission(user.roleId, 'client:editStructural')
     : false;
-  const employees = canManage ? await listEmployees(user.organisationId) : [];
+  const canManageContacts = user.roleId
+    ? await roleHasPermission(user.roleId, 'client:editContact')
+    : false;
+  const [employees, contacts] = await Promise.all([
+    canManage ? listEmployees(user.organisationId) : Promise.resolve([]),
+    listContactsForEntity(user.organisationId, entityId),
+  ]);
+  const primaryContact = contacts.find((contact) => contact.isPrimary) ?? null;
 
-  return <EntityDetail clientId={id} entity={entity} employees={employees} canManage={canManage} />;
+  return (
+    <>
+      <EntityDetail
+        clientId={id}
+        entity={entity}
+        employees={employees}
+        canManage={canManage}
+        primaryContactName={primaryContact?.name ?? null}
+      />
+      <EntityContacts
+        clientId={id}
+        entityId={entityId}
+        initialContacts={contacts}
+        canManage={canManageContacts}
+      />
+    </>
+  );
 }

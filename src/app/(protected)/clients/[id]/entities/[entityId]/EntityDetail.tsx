@@ -27,11 +27,13 @@ export function EntityDetail({
   entity,
   employees,
   canManage,
+  primaryContactName,
 }: {
   clientId: string;
   entity: Entity;
   employees: EmployeeOption[];
   canManage: boolean;
+  primaryContactName: string | null;
 }) {
   const router = useRouter();
   const [isEditing, setEditing] = useState(false);
@@ -102,6 +104,8 @@ export function EntityDetail({
             <dd>{entity.phone ?? '—'}</dd>
             <dt>Email</dt>
             <dd>{entity.email ?? '—'}</dd>
+            <dt>Primary contact</dt>
+            <dd>{primaryContactName ?? '—'}</dd>
             <dt>Status</dt>
             <dd>{entity.isActive ? 'Active' : 'Inactive'}</dd>
           </dl>

@@ -26,6 +26,7 @@ model Organisation {
   availabilities  Availability[]
   clients         Client[]
   clientEntities  ClientEntity[]
+  contacts        Contact[]
 
   @@map("organisations")
 }
@@ -271,6 +272,7 @@ model ClientEntity {
   organisation   Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   client         Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
   accountManager User?        @relation(fields: [accountManagerId], references: [id])
+  contacts       Contact[]
 
   // PAN/GSTIN are national tax-identity numbers - genuinely unique per legal entity, so a
   // duplicate is a real data-entry error worth catching, not just noise. Postgres treats
@@ -283,4 +285,34 @@ model ClientEntity {
   @@index([clientId])
   @@index([accountManagerId])
   @@map("client_entities")
+}
+
+/// A person to reach at a client entity (PRD §6/§38's "Contact | Client contact", referenced as
+/// each entity's "Primary Contact"). Lightweight, day-to-day data - gated on client:editContact
+/// (Manager+Partner), not client:editStructural (Partner-only) like the entity's own compliance
+/// fields, per RBAC.md's own description of editContact as covering exactly this ("contact
+/// notes"). No isActive lifecycle like the other masters - a contact who's left is just removed,
+/// not archived; this is a much lower-stakes record than an Employee or Client.
+model Contact {
+  id             String   @id @default(uuid())
+  organisationId String
+  entityId       String
+  name           String
+  designation    String?
+  phone          String?
+  email          String?
+  /// At most one primary contact per entity - enforced in the service layer (clearing any
+  /// existing primary when a new one is set), not a DB constraint, since "at most one true" per
+  /// group isn't expressible as a plain unique index.
+  isPrimary      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  entity       ClientEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  @@unique([entityId, name])
+  @@index([organisationId])
+  @@index([entityId])
+  @@map("contacts")
 }
