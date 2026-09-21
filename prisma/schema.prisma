@@ -16,17 +16,20 @@ model Organisation {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  departments     Department[]
-  roles           Role[]
-  users           User[]
-  sessions        Session[]
-  rolePermissions RolePermission[]
-  skills          Skill[]
-  employeeSkills  EmployeeSkill[]
-  availabilities  Availability[]
-  clients         Client[]
-  clientEntities  ClientEntity[]
-  contacts        Contact[]
+  departments        Department[]
+  roles              Role[]
+  users              User[]
+  sessions           Session[]
+  rolePermissions    RolePermission[]
+  skills             Skill[]
+  employeeSkills     EmployeeSkill[]
+  availabilities     Availability[]
+  clients            Client[]
+  clientEntities     ClientEntity[]
+  contacts           Contact[]
+  services           Service[]
+  checklistTemplates ChecklistTemplate[]
+  checklistItems     ChecklistItem[]
 
   @@map("organisations")
 }
@@ -41,6 +44,7 @@ model Department {
 
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   users        User[]
+  services     Service[]
 
   @@unique([organisationId, name])
   @@index([organisationId])
@@ -110,18 +114,18 @@ model User {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  department   Department?  @relation(fields: [departmentId], references: [id])
-  role         Role?        @relation(fields: [roleId], references: [id])
-  sessions     Session[]
+  organisation    Organisation    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  department      Department?     @relation(fields: [departmentId], references: [id])
+  role            Role?           @relation(fields: [roleId], references: [id])
+  sessions        Session[]
   /// Self-referential reporting line. Nullable - not every employee has a manager assigned
   /// (e.g. a Partner at the top of the chain). Cycle prevention (an employee can't end up in
   /// their own reporting chain) is enforced in the service layer, not the schema - Postgres FKs
   /// can't express "no cycles."
-  manager   User?  @relation("UserManager", fields: [managerId], references: [id])
-  directReports User[] @relation("UserManager")
-  employeeSkills EmployeeSkill[]
-  availabilities Availability[]
+  manager         User?           @relation("UserManager", fields: [managerId], references: [id])
+  directReports   User[]          @relation("UserManager")
+  employeeSkills  EmployeeSkill[]
+  availabilities  Availability[]
   managedEntities ClientEntity[]
 
   @@unique([organisationId, email])
@@ -246,7 +250,7 @@ model Client {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  organisation Organisation   @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   entities     ClientEntity[]
 
   @@unique([organisationId, name])
@@ -260,19 +264,19 @@ model Client {
 /// (Engagement model, Day 35), which the PRD lists on the same entity but depend on tables that
 /// don't exist yet.
 model ClientEntity {
-  id                String   @id @default(uuid())
-  organisationId    String
-  clientId          String
-  name              String
-  pan               String?
-  gstin             String?
-  cin               String?
-  accountManagerId  String?
-  phone             String?
-  email             String?
-  isActive          Boolean  @default(true)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id               String   @id @default(uuid())
+  organisationId   String
+  clientId         String
+  name             String
+  pan              String?
+  gstin            String?
+  cin              String?
+  accountManagerId String?
+  phone            String?
+  email            String?
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   organisation   Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   client         Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
@@ -320,4 +324,82 @@ model Contact {
   @@index([organisationId])
   @@index([entityId])
   @@map("contacts")
+}
+
+/// The service catalogue (PRD §7), e.g. "Taxation" (a top-level category, parentId null) with
+/// "GST", "GSTR-1" etc. as children. Self-referential like User.managerId (Day 24) - same
+/// reasoning: unlimited depth via one FK, cycle prevention in the service layer since Postgres
+/// FKs can't express "no cycles". Carries every "each service should allow configuration of"
+/// field from the PRD directly (Days 37/40 are the same model, not separate tables - department
+/// + expected skill level are just fields here, "rules stored/retrieved" is trivially true of
+/// any persisted field). The standard checklist (Day 41) is its own model below, not a field
+/// here, since "template attaches to service" implies a real object with its own items.
+model Service {
+  id                      String      @id @default(uuid())
+  organisationId          String
+  name                    String
+  parentId                String?
+  departmentId            String?
+  expectedSkillLevel      SkillLevel?
+  turnaroundDays          Int?
+  estimatedEffortMinHours Float?
+  estimatedEffortMaxHours Float?
+  reviewRequired          Boolean     @default(false)
+  isRecurring             Boolean     @default(false)
+  standardDocuments       String?
+  isActive                Boolean     @default(true)
+  createdAt               DateTime    @default(now())
+  updatedAt               DateTime    @updatedAt
+
+  organisation      Organisation       @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  parent            Service?           @relation("ServiceHierarchy", fields: [parentId], references: [id])
+  children          Service[]          @relation("ServiceHierarchy")
+  department        Department?        @relation(fields: [departmentId], references: [id])
+  checklistTemplate ChecklistTemplate?
+
+  // Name uniqueness is enforced in the service layer, not just this index - Postgres treats
+  // every NULL in a unique index as distinct, so two top-level services (parentId null) with
+  // the same name would NOT collide here even though they should.
+  @@unique([organisationId, parentId, name])
+  @@index([organisationId])
+  @@index([parentId])
+  @@index([departmentId])
+  @@map("services")
+}
+
+/// A reusable checklist attached to exactly one service (PRD §7's "standard checklist" /
+/// Day 41's "template attaches to service"). "Reusable" means its items get copied onto a Task
+/// for that service once Task Engine exists (Day 44+) - not built yet, this is just the
+/// template.
+model ChecklistTemplate {
+  id             String   @id @default(uuid())
+  organisationId String
+  serviceId      String   @unique
+  name           String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organisation Organisation    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  service      Service         @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  items        ChecklistItem[]
+
+  @@index([organisationId])
+  @@map("checklist_templates")
+}
+
+model ChecklistItem {
+  id                  String   @id @default(uuid())
+  organisationId      String
+  checklistTemplateId String
+  label               String
+  position            Int
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  organisation      Organisation      @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  checklistTemplate ChecklistTemplate @relation(fields: [checklistTemplateId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId])
+  @@index([checklistTemplateId])
+  @@map("checklist_items")
 }
