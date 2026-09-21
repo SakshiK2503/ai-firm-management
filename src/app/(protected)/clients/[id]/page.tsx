@@ -6,6 +6,7 @@ import { listEntitiesForClient } from '@/modules/clients/entity.service';
 import { listEmployees } from '@/modules/identity/employee.service';
 import { ClientDetail } from './ClientDetail';
 import { ClientEntities } from './ClientEntities';
+import { ClientInstructions } from './ClientInstructions';
 
 export default async function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { user, allowed } = await requireUserWithPermission('client:view');
@@ -34,6 +35,9 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
   const canManage = user.roleId
     ? await roleHasPermission(user.roleId, 'client:editStructural')
     : false;
+  const canManageContact = user.roleId
+    ? await roleHasPermission(user.roleId, 'client:editContact')
+    : false;
 
   const [entities, employees] = await Promise.all([
     listEntitiesForClient(user.organisationId, id),
@@ -45,6 +49,11 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
       <ClientDetail
         client={{ ...client, createdAt: client.createdAt.toISOString() }}
         canManage={canManage}
+      />
+      <ClientInstructions
+        clientId={id}
+        initialInstructions={client.instructions}
+        canManage={canManageContact}
       />
       <ClientEntities
         clientId={id}

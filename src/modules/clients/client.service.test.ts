@@ -115,4 +115,17 @@ describe('client service', () => {
       updateClient(organisationId, client.id, { isActive: false }),
     ).rejects.toMatchObject({ statusCode: 404, code: 'NOT_FOUND' });
   });
+
+  it('sets and clears client instructions', async () => {
+    const client = await createClient(organisationId, 'Instructed Client');
+    expect(client.instructions).toBeNull();
+
+    const withInstructions = await updateClient(organisationId, client.id, {
+      instructions: 'Always CC the CFO on GST filings.',
+    });
+    expect(withInstructions.instructions).toBe('Always CC the CFO on GST filings.');
+
+    const cleared = await updateClient(organisationId, client.id, { instructions: null });
+    expect(cleared.instructions).toBeNull();
+  });
 });

@@ -238,6 +238,11 @@ model Client {
   organisationId String
   name           String
   isActive       Boolean  @default(true)
+  /// Persistent client-specific instructions/notes (PRD S6's "client-specific instructions" -
+  /// Day 36). Lightweight, day-to-day content - gated on client:editContact like a contact's
+  /// own fields, not client:editStructural like name/isActive, so it gets its own PATCH route
+  /// rather than being folded into the structural one (see /api/clients/[id]/instructions).
+  instructions   String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 

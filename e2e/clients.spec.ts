@@ -19,7 +19,7 @@ test.describe('clients admin', () => {
     await expect(page.getByRole('heading', { name: clientName, exact: true })).toBeVisible();
     await expect(page.getByText('Active')).toBeVisible();
 
-    await page.getByRole('button', { name: 'Edit' }).click();
+    await page.getByRole('button', { name: 'Edit', exact: true }).click();
     await page.getByLabel('Active').uncheck();
     await page.getByRole('button', { name: 'Save' }).click();
     await expect(page.getByText('Inactive')).toBeVisible();

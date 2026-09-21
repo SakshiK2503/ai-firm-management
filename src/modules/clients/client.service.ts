@@ -66,7 +66,7 @@ export async function getClient(organisationId: string, clientId: string) {
 export async function updateClient(
   organisationId: string,
   clientId: string,
-  data: { name?: string; isActive?: boolean },
+  data: { name?: string; isActive?: boolean; instructions?: string | null },
 ) {
   const existing = await db.client.findFirst({ where: { id: clientId, organisationId } });
   if (!existing) {
