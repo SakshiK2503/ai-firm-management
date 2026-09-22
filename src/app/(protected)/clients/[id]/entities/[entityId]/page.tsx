@@ -4,8 +4,11 @@ import { roleHasPermission } from '@/modules/kernel/rbac/permissions';
 import { getEntity } from '@/modules/clients/entity.service';
 import { listContactsForEntity } from '@/modules/clients/contact.service';
 import { listEmployees } from '@/modules/identity/employee.service';
+import { listEngagementsForEntity } from '@/modules/services/engagement.service';
+import { listServiceTree } from '@/modules/services/service.service';
 import { EntityDetail } from './EntityDetail';
 import { EntityContacts } from './EntityContacts';
+import { EntityEngagements } from './EntityEngagements';
 
 export default async function EntityDetailPage({
   params,
@@ -41,9 +44,11 @@ export default async function EntityDetailPage({
   const canManageContacts = user.roleId
     ? await roleHasPermission(user.roleId, 'client:editContact')
     : false;
-  const [employees, contacts] = await Promise.all([
+  const [employees, contacts, engagements, serviceTree] = await Promise.all([
     canManage ? listEmployees(user.organisationId) : Promise.resolve([]),
     listContactsForEntity(user.organisationId, entityId),
+    listEngagementsForEntity(user.organisationId, id, entityId),
+    canManage ? listServiceTree(user.organisationId) : Promise.resolve([]),
   ]);
   const primaryContact = contacts.find((contact) => contact.isPrimary) ?? null;
 
@@ -61,6 +66,16 @@ export default async function EntityDetailPage({
         entityId={entityId}
         initialContacts={contacts}
         canManage={canManageContacts}
+      />
+      <EntityEngagements
+        clientId={id}
+        entityId={entityId}
+        initialEngagements={engagements.map((engagement) => ({
+          ...engagement,
+          engagementStart: engagement.engagementStart.toISOString(),
+        }))}
+        serviceTree={serviceTree}
+        canManage={canManage}
       />
     </>
   );

@@ -139,7 +139,7 @@ export function ServicesAdmin({
               <option value="">No parent (top-level)</option>
               {flatRows.map(({ node, depth }) => (
                 <option key={node.id} value={node.id}>
-                  {'—'.repeat(depth)} {node.name}
+                  {depth > 0 ? `${'—'.repeat(depth)} ${node.name}` : node.name}
                 </option>
               ))}
             </select>

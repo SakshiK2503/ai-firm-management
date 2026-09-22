@@ -30,6 +30,7 @@ model Organisation {
   services           Service[]
   checklistTemplates ChecklistTemplate[]
   checklistItems     ChecklistItem[]
+  engagements        Engagement[]
 
   @@map("organisations")
 }
@@ -282,6 +283,7 @@ model ClientEntity {
   client         Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
   accountManager User?        @relation(fields: [accountManagerId], references: [id])
   contacts       Contact[]
+  engagements    Engagement[]
 
   // PAN/GSTIN are national tax-identity numbers - genuinely unique per legal entity, so a
   // duplicate is a real data-entry error worth catching, not just noise. Postgres treats
@@ -356,6 +358,7 @@ model Service {
   children          Service[]          @relation("ServiceHierarchy")
   department        Department?        @relation(fields: [departmentId], references: [id])
   checklistTemplate ChecklistTemplate?
+  engagements       Engagement[]
 
   // Name uniqueness is enforced in the service layer, not just this index - Postgres treats
   // every NULL in a unique index as distinct, so two top-level services (parentId null) with
@@ -402,4 +405,39 @@ model ChecklistItem {
   @@index([organisationId])
   @@index([checklistTemplateId])
   @@map("checklist_items")
+}
+
+enum BillingStructure {
+  MONTHLY
+  ASSIGNMENT
+}
+
+/// A standing client-service relationship (PRD §6's per-entity "Services / Engagement Start /
+/// Billing Structure / Status" fields, Day 35). Links one ClientEntity to one Service - not the
+/// Client/group directly, since PRD §6's example ties services to the individual entity (e.g.
+/// "ABC Private Limited" engages GST separately from "ABC LLP"). Ending an engagement is a
+/// status change (isActive: false, i.e. "terminate an engagement" per the client:editStructural
+/// permission description), never a delete - the record stays as engagement history.
+model Engagement {
+  id               String           @id @default(uuid())
+  organisationId   String
+  clientEntityId   String
+  serviceId        String
+  engagementStart  DateTime
+  billingStructure BillingStructure
+  isActive         Boolean          @default(true)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  clientEntity ClientEntity @relation(fields: [clientEntityId], references: [id], onDelete: Cascade)
+  service      Service      @relation(fields: [serviceId], references: [id])
+
+  // One engagement per entity+service - re-engaging the same service on the same entity means
+  // reactivating the existing row (isActive: true), not creating a second one.
+  @@unique([clientEntityId, serviceId])
+  @@index([organisationId])
+  @@index([clientEntityId])
+  @@index([serviceId])
+  @@map("engagements")
 }

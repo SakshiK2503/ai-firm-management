@@ -136,6 +136,21 @@ export async function getEntity(organisationId: string, entityId: string) {
   return entity;
 }
 
+// A route nested under both /clients/[id] and /entities/[entityId] (e.g. Engagements) needs to
+// confirm the entity actually belongs to the client in the URL, not just to the organisation -
+// otherwise a valid entityId from a different client in the same org would be accepted.
+export async function assertEntityBelongsToClient(
+  organisationId: string,
+  clientId: string,
+  entityId: string,
+) {
+  const entity = await getEntity(organisationId, entityId);
+  if (entity.clientId !== clientId) {
+    throw new ApiError(404, 'NOT_FOUND', 'Entity not found.');
+  }
+  return entity;
+}
+
 export interface EntityUpdateInput {
   name?: string;
   pan?: string | null;
