@@ -6,6 +6,23 @@ import { roleHasPermission } from '@/modules/kernel/rbac/permissions';
 import { createTask, listTasks } from '@/modules/tasks/task.service';
 
 const priorities = ['LOW', 'NORMAL', 'HIGH', 'CRITICAL'] as const;
+const statuses = [
+  'NEW',
+  'AI_PROCESSING',
+  'AWAITING_ALLOCATION',
+  'ASSIGNED',
+  'IN_PROGRESS',
+  'AWAITING_CLIENT_INFO',
+  'AWAITING_INTERNAL_DEPENDENCY',
+  'SUBMITTED_FOR_REVIEW',
+  'REVIEW_IN_PROGRESS',
+  'CORRECTION_REQUIRED',
+  'APPROVED',
+  'CLIENT_DELIVERY',
+  'COMPLETED',
+  'ARCHIVED',
+  'CANCELLED',
+] as const;
 
 const createTaskSchema = z.object({
   clientId: z.string().uuid(),
@@ -15,13 +32,27 @@ const createTaskSchema = z.object({
   priority: z.enum(priorities).optional(),
 });
 
+const listTasksQuerySchema = z.object({
+  status: z.enum(statuses).optional(),
+  clientId: z.string().uuid().optional(),
+  priority: z.enum(priorities).optional(),
+});
+
 export async function GET(request: NextRequest) {
   try {
     const { user } = await requirePermission(request, 'task:view');
     const canViewAll = user.roleId ? await roleHasPermission(user.roleId, 'task:viewAll') : false;
 
+    const { searchParams } = new URL(request.url);
+    const filters = listTasksQuerySchema.parse({
+      status: searchParams.get('status') ?? undefined,
+      clientId: searchParams.get('clientId') ?? undefined,
+      priority: searchParams.get('priority') ?? undefined,
+    });
+
     const tasks = await listTasks(user.organisationId, {
       scope: canViewAll ? 'all' : 'assigned',
+      ...filters,
     });
     return NextResponse.json({ tasks });
   } catch (error) {

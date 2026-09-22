@@ -23,12 +23,17 @@ export default async function TasksPage() {
 
   const [tasks, clientResult] = await Promise.all([
     listTasks(user.organisationId, { scope: canViewAll ? 'all' : 'assigned' }),
-    canCreate && canViewClients
+    canViewAll && canViewClients
       ? listClients(user.organisationId, { scope: 'all', includeInactive: false, pageSize: 100 })
       : Promise.resolve(null),
   ]);
 
   return (
-    <TasksAdmin initialTasks={tasks} clients={clientResult?.clients ?? []} canCreate={canCreate} />
+    <TasksAdmin
+      initialTasks={tasks}
+      clients={clientResult?.clients ?? []}
+      canCreate={canCreate}
+      canFilter={canViewAll}
+    />
   );
 }

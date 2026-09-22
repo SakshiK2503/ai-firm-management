@@ -1,9 +1,21 @@
-.createForm {
+.createForm,
+.filterBar {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
   gap: 0.75rem;
   margin: 1rem 0;
+}
+
+.filterBar button {
+  padding: 0.5rem 0.875rem;
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  background: transparent;
+  color: var(--foreground);
+  cursor: pointer;
+  height: fit-content;
+  align-self: flex-end;
 }
 
 .field {

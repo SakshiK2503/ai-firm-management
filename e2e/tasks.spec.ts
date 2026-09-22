@@ -32,7 +32,7 @@ test.describe('task creation', () => {
     await expect(page.getByRole('row', { name: new RegExp(serviceName) })).toBeVisible();
 
     await page.goto('/tasks');
-    await page.getByLabel('Client').selectOption({ label: clientName });
+    await page.getByLabel('Client', { exact: true }).selectOption({ label: clientName });
     await page.getByLabel('Entity').selectOption({ label: entityName });
     await page.getByLabel('Task service').selectOption({ label: serviceName });
     const taskTitle = `E2E Task Title ${Date.now()}`;
@@ -47,6 +47,17 @@ test.describe('task creation', () => {
     await expect(taskRow.getByText(entityName)).toBeVisible();
     await expect(taskRow.getByText('HIGH')).toBeVisible();
     await expect(taskRow.getByText('NEW')).toBeVisible();
+
+    // Filtering by a priority the new task doesn't have should hide it; filtering by its own
+    // client should keep it visible; clearing filters brings it back either way.
+    await page.getByLabel('Filter by priority').selectOption('LOW');
+    await expect(page.getByRole('row', { name: new RegExp(taskTitle) })).toHaveCount(0);
+
+    await page.getByRole('button', { name: 'Clear filters' }).click();
+    await expect(page.getByRole('row', { name: new RegExp(taskTitle) })).toBeVisible();
+
+    await page.getByLabel('Filter by client').selectOption({ label: clientName });
+    await expect(page.getByRole('row', { name: new RegExp(taskTitle) })).toBeVisible();
   });
 
   test('a Preparer sees the Tasks nav link but no tasks and no create form (no assignment mechanism yet)', async ({

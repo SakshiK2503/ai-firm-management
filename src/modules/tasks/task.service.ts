@@ -3,6 +3,7 @@ import { ApiError } from '@/modules/kernel/errors';
 import { assertEntityBelongsToClient } from '@/modules/clients/entity.service';
 import { assertEngagementActive } from '@/modules/services/engagement.service';
 import { assertServiceAssignable } from '@/modules/services/service.service';
+import type { TaskPriority, TaskStatus } from '@/generated/prisma/client';
 
 const TASK_SELECT = {
   id: true,
@@ -28,7 +29,7 @@ export interface TaskInput {
   clientEntityId: string;
   serviceId: string;
   title: string;
-  priority?: 'LOW' | 'NORMAL' | 'HIGH' | 'CRITICAL';
+  priority?: TaskPriority;
 }
 
 // Atomically claims the next number for this org+month via Postgres's row-level locking on the
@@ -80,22 +81,32 @@ export async function createTask(organisationId: string, input: TaskInput) {
   });
 }
 
-export async function listTasks(
-  organisationId: string,
-  options: {
-    // 'assigned' is a Preparer without task:viewAll. Task.assignedToId doesn't exist yet
-    // (Task Engine's "Assignment" is its own later day), so there's no way to compute "tasks
-    // assigned to me" - same honest-empty-result interim behaviour as Client's own scoping
-    // (see docs/RBAC.md's known gaps), to be revisited once assignment exists.
-    scope: 'all' | 'assigned';
-  },
-) {
+export interface TaskListFilters {
+  // 'assigned' is a Preparer without task:viewAll. Task.assignedToId doesn't exist yet (Task
+  // Engine's "Assignment" is its own later day), so there's no way to compute "tasks assigned to
+  // me" - same honest-empty-result interim behaviour as Client's own scoping (see docs/RBAC.md's
+  // known gaps), to be revisited once assignment exists.
+  scope: 'all' | 'assigned';
+  status?: TaskStatus;
+  clientId?: string;
+  priority?: TaskPriority;
+  // Day 46's acceptance check also lists an assignee filter and a date filter - both need
+  // fields this batch deliberately doesn't have yet (assignedToId is Assignment's day, dueDate
+  // is Dates' day). Added here once those days land, not guessed at now.
+}
+
+export async function listTasks(organisationId: string, options: TaskListFilters) {
   if (options.scope === 'assigned') {
     return [];
   }
 
   return db.task.findMany({
-    where: { organisationId },
+    where: {
+      organisationId,
+      ...(options.status ? { status: options.status } : {}),
+      ...(options.clientId ? { clientId: options.clientId } : {}),
+      ...(options.priority ? { priority: options.priority } : {}),
+    },
     select: TASK_SELECT,
     orderBy: { createdAt: 'desc' },
   });

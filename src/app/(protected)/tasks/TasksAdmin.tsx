@@ -6,6 +6,23 @@ import { extractErrorMessage } from '@/modules/kernel/api-client';
 import styles from './page.module.css';
 
 const PRIORITIES = ['LOW', 'NORMAL', 'HIGH', 'CRITICAL'] as const;
+const STATUSES = [
+  'NEW',
+  'AI_PROCESSING',
+  'AWAITING_ALLOCATION',
+  'ASSIGNED',
+  'IN_PROGRESS',
+  'AWAITING_CLIENT_INFO',
+  'AWAITING_INTERNAL_DEPENDENCY',
+  'SUBMITTED_FOR_REVIEW',
+  'REVIEW_IN_PROGRESS',
+  'CORRECTION_REQUIRED',
+  'APPROVED',
+  'CLIENT_DELIVERY',
+  'COMPLETED',
+  'ARCHIVED',
+  'CANCELLED',
+] as const;
 
 interface Task {
   id: string;
@@ -39,10 +56,12 @@ export function TasksAdmin({
   initialTasks,
   clients,
   canCreate,
+  canFilter,
 }: {
   initialTasks: Task[];
   clients: Client[];
   canCreate: boolean;
+  canFilter: boolean;
 }) {
   const router = useRouter();
   const [tasks, setTasks] = useState(initialTasks);
@@ -55,6 +74,7 @@ export function TasksAdmin({
     title: '',
     priority: 'NORMAL' as (typeof PRIORITIES)[number],
   });
+  const [filters, setFilters] = useState({ status: '', clientId: '', priority: '' });
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setSubmitting] = useState(false);
 
@@ -72,13 +92,27 @@ export function TasksAdmin({
       .then((body) => setEngagements(body.engagements.filter((e: Engagement) => e.isActive)));
   }, [form.clientId, form.clientEntityId]);
 
-  async function refresh() {
-    const response = await fetch('/api/tasks');
+  function buildTasksUrl(currentFilters: typeof filters) {
+    const params = new URLSearchParams();
+    if (currentFilters.status) params.set('status', currentFilters.status);
+    if (currentFilters.clientId) params.set('clientId', currentFilters.clientId);
+    if (currentFilters.priority) params.set('priority', currentFilters.priority);
+    const query = params.toString();
+    return query ? `/api/tasks?${query}` : '/api/tasks';
+  }
+
+  async function refresh(currentFilters: typeof filters = filters) {
+    const response = await fetch(buildTasksUrl(currentFilters));
     if (response.ok) {
       const body = await response.json();
       setTasks(body.tasks);
       router.refresh();
     }
+  }
+
+  async function handleFilterChange(next: typeof filters) {
+    setFilters(next);
+    await refresh(next);
   }
 
   async function handleCreate(event: FormEvent) {
@@ -109,6 +143,67 @@ export function TasksAdmin({
   return (
     <div>
       <h1>Tasks</h1>
+
+      {canFilter && (
+        <div className={styles.filterBar}>
+          <label className={styles.field}>
+            Status
+            <select
+              value={filters.status}
+              onChange={(event) => handleFilterChange({ ...filters, status: event.target.value })}
+              aria-label="Filter by status"
+            >
+              <option value="">All statuses</option>
+              {STATUSES.map((status) => (
+                <option key={status} value={status}>
+                  {status}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className={styles.field}>
+            Client
+            <select
+              value={filters.clientId}
+              onChange={(event) => handleFilterChange({ ...filters, clientId: event.target.value })}
+              aria-label="Filter by client"
+            >
+              <option value="">All clients</option>
+              {clients.map((client) => (
+                <option key={client.id} value={client.id}>
+                  {client.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className={styles.field}>
+            Priority
+            <select
+              value={filters.priority}
+              onChange={(event) => handleFilterChange({ ...filters, priority: event.target.value })}
+              aria-label="Filter by priority"
+            >
+              <option value="">All priorities</option>
+              {PRIORITIES.map((priority) => (
+                <option key={priority} value={priority}>
+                  {priority}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {(filters.status || filters.clientId || filters.priority) && (
+            <button
+              type="button"
+              onClick={() => handleFilterChange({ status: '', clientId: '', priority: '' })}
+            >
+              Clear filters
+            </button>
+          )}
+        </div>
+      )}
 
       {canCreate && (
         <form onSubmit={handleCreate} className={styles.createForm}>

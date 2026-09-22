@@ -133,9 +133,9 @@ describe('/api/tasks', () => {
     await db.$disconnect();
   });
 
-  function get(sessionId?: string) {
+  function get(sessionId?: string, query = '') {
     return GET(
-      new NextRequest('http://localhost/api/tasks', {
+      new NextRequest(`http://localhost/api/tasks${query}`, {
         headers: sessionId ? { cookie: `${SESSION_COOKIE_NAME}=${sessionId}` } : undefined,
       }),
     );
@@ -280,5 +280,60 @@ describe('/api/tasks', () => {
   it('returns 401 listing tasks while logged out', async () => {
     const response = await get();
     expect(response.status).toBe(401);
+  });
+
+  it('filters tasks by status', async () => {
+    const created = await post(
+      { clientId, clientEntityId: entityId, serviceId, title: 'To be reviewed' },
+      partnerSessionId,
+    );
+    const { task } = await created.json();
+    await db.task.update({ where: { id: task.id }, data: { status: 'IN_PROGRESS' } });
+
+    const response = await get(partnerSessionId, '?status=IN_PROGRESS');
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.tasks.length).toBeGreaterThan(0);
+    expect(body.tasks.every((t: { status: string }) => t.status === 'IN_PROGRESS')).toBe(true);
+  });
+
+  it('filters tasks by priority', async () => {
+    const response = await get(partnerSessionId, '?priority=CRITICAL');
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.tasks.length).toBeGreaterThan(0);
+    expect(body.tasks.every((t: { priority: string }) => t.priority === 'CRITICAL')).toBe(true);
+  });
+
+  it('filters tasks by client', async () => {
+    const otherEntity = await db.clientEntity.findUniqueOrThrow({
+      where: { id: otherClientEntityId },
+    });
+    const otherClientTask = await db.task.create({
+      data: {
+        organisationId,
+        taskNumber: `TASK-FILTER-TEST-${crypto.randomUUID()}`,
+        clientId: otherEntity.clientId,
+        clientEntityId: otherClientEntityId,
+        serviceId,
+        title: 'Other client task',
+      },
+    });
+
+    const response = await get(partnerSessionId, `?clientId=${clientId}`);
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.tasks.every((t: { client: { id: string } }) => t.client.id === clientId)).toBe(
+      true,
+    );
+    expect(body.tasks.some((t: { id: string }) => t.id === otherClientTask.id)).toBe(false);
+  });
+
+  it('rejects an invalid status filter value', async () => {
+    const response = await get(partnerSessionId, '?status=NOT_A_REAL_STATUS');
+    expect(response.status).toBe(400);
   });
 });
