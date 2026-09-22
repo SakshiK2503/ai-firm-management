@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, type FormEvent } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { extractErrorMessage } from '@/modules/kernel/api-client';
 import styles from './page.module.css';
@@ -334,7 +335,9 @@ export function TasksAdmin({
           <tbody>
             {tasks.map((task) => (
               <tr key={task.id}>
-                <td>{task.taskNumber}</td>
+                <td>
+                  <Link href={`/tasks/${task.id}`}>{task.taskNumber}</Link>
+                </td>
                 <td>{task.title}</td>
                 <td>{task.client.name}</td>
                 <td>{task.clientEntity.name}</td>

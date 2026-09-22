@@ -117,3 +117,18 @@ export async function assertEngagementActive(
     );
   }
 }
+
+// Non-throwing lookup for display purposes (e.g. the Task detail workspace's "related data" -
+// billing structure and engagement start are relevant context for why the task exists, but a
+// task's own validity was already confirmed at creation time, so a missing/terminated
+// engagement here isn't an error to surface, just information with nothing found).
+export async function getEngagementForEntityService(
+  organisationId: string,
+  entityId: string,
+  serviceId: string,
+) {
+  return db.engagement.findFirst({
+    where: { organisationId, clientEntityId: entityId, serviceId },
+    select: ENGAGEMENT_SELECT,
+  });
+}

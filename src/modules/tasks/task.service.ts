@@ -111,3 +111,14 @@ export async function listTasks(organisationId: string, options: TaskListFilters
     orderBy: { createdAt: 'desc' },
   });
 }
+
+export async function getTask(organisationId: string, taskId: string) {
+  const task = await db.task.findFirst({
+    where: { id: taskId, organisationId },
+    select: TASK_SELECT,
+  });
+  if (!task) {
+    throw new ApiError(404, 'NOT_FOUND', 'Task not found.');
+  }
+  return task;
+}

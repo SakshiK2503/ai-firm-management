@@ -58,6 +58,16 @@ test.describe('task creation', () => {
 
     await page.getByLabel('Filter by client').selectOption({ label: clientName });
     await expect(page.getByRole('row', { name: new RegExp(taskTitle) })).toBeVisible();
+
+    await taskRow.getByRole('link', { name: /^TASK-\d{4}-\d{2}-\d{6}$/ }).click();
+    await expect(page.getByRole('heading', { name: taskTitle, exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: clientName, exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: entityName, exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: serviceName, exact: true })).toBeVisible();
+    await expect(page.getByText('HIGH')).toBeVisible();
+    await expect(page.getByText('NEW')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Engagement' })).toBeVisible();
+    await expect(page.getByText('MONTHLY')).toBeVisible();
   });
 
   test('a Preparer sees the Tasks nav link but no tasks and no create form (no assignment mechanism yet)', async ({
