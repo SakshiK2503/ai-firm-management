@@ -32,6 +32,8 @@ model Organisation {
   checklistItems     ChecklistItem[]
   engagements        Engagement[]
   recurringConfigs   RecurringConfig[]
+  tasks              Task[]
+  taskSequences      TaskSequence[]
 
   @@map("organisations")
 }
@@ -47,6 +49,7 @@ model Department {
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   users        User[]
   services     Service[]
+  tasks        Task[]
 
   @@unique([organisationId, name])
   @@index([organisationId])
@@ -254,6 +257,7 @@ model Client {
 
   organisation Organisation   @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   entities     ClientEntity[]
+  tasks        Task[]
 
   @@unique([organisationId, name])
   @@index([organisationId])
@@ -285,6 +289,7 @@ model ClientEntity {
   accountManager User?        @relation(fields: [accountManagerId], references: [id])
   contacts       Contact[]
   engagements    Engagement[]
+  tasks          Task[]
 
   // PAN/GSTIN are national tax-identity numbers - genuinely unique per legal entity, so a
   // duplicate is a real data-entry error worth catching, not just noise. Postgres treats
@@ -361,6 +366,7 @@ model Service {
   checklistTemplate ChecklistTemplate?
   engagements       Engagement[]
   recurringConfig   RecurringConfig?
+  tasks             Task[]
 
   // Name uniqueness is enforced in the service layer, not just this index - Postgres treats
   // every NULL in a unique index as distinct, so two top-level services (parentId null) with
@@ -474,4 +480,99 @@ model RecurringConfig {
 
   @@index([organisationId])
   @@map("recurring_configs")
+}
+
+enum TaskPriority {
+  LOW
+  NORMAL
+  HIGH
+  CRITICAL
+}
+
+/// How the task came to exist (PRD §11's "Source | WhatsApp/email/manual"). Only MANUAL is
+/// produced today (Day 44/45) - WHATSAPP/EMAIL are AI Intake phase, much later, but the field
+/// exists now so a manually created task is recorded as manual rather than defaulted to nothing.
+enum TaskSource {
+  MANUAL
+  WHATSAPP
+  EMAIL
+}
+
+/// The full PRD §12 status vocabulary, declared now because it's a fixed, already-specified set
+/// of values - NOT because the workflow (which transitions are valid, who can trigger them) is
+/// built yet. That's the Status State Machine's own day (Task Engine, "Workflow") later in this
+/// phase; every task created before then just sits at its default status.
+enum TaskStatus {
+  NEW
+  AI_PROCESSING
+  AWAITING_ALLOCATION
+  ASSIGNED
+  IN_PROGRESS
+  AWAITING_CLIENT_INFO
+  AWAITING_INTERNAL_DEPENDENCY
+  SUBMITTED_FOR_REVIEW
+  REVIEW_IN_PROGRESS
+  CORRECTION_REQUIRED
+  APPROVED
+  CLIENT_DELIVERY
+  COMPLETED
+  ARCHIVED
+  CANCELLED
+}
+
+/// A work item (PRD §11). Carries both clientId and clientEntityId directly (not just derived
+/// through the entity) because the PRD lists them as separate core fields, and it lets a task
+/// list be filtered/queried by client without an extra join. Creating a task validates that the
+/// entity belongs to the client AND that the entity actually has an active Engagement for the
+/// service - a task should represent real, currently-engaged client work, not an arbitrary
+/// client/entity/service combination (see assertEngagementActive in engagement.service.ts).
+/// Fields the roadmap gives their own later day - assignedTo/reviewer (Assignment), startDate/
+/// dueDate (Dates), attachments/dependencies/checklist/subtasks/comments (their own tables) -
+/// are deliberately not here yet.
+model Task {
+  id             String       @id @default(uuid())
+  organisationId String
+  taskNumber     String
+  clientId       String
+  clientEntityId String
+  departmentId   String?
+  serviceId      String
+  title          String
+  priority       TaskPriority @default(NORMAL)
+  source         TaskSource   @default(MANUAL)
+  status         TaskStatus   @default(NEW)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  client       Client       @relation(fields: [clientId], references: [id])
+  clientEntity ClientEntity @relation(fields: [clientEntityId], references: [id])
+  department   Department?  @relation(fields: [departmentId], references: [id])
+  service      Service      @relation(fields: [serviceId], references: [id])
+
+  @@unique([organisationId, taskNumber])
+  @@index([organisationId])
+  @@index([clientId])
+  @@index([clientEntityId])
+  @@index([serviceId])
+  @@index([status])
+  @@map("tasks")
+}
+
+/// A per-organisation, per-calendar-month monotonic counter backing Task.taskNumber (Day 45,
+/// "IDs unique/readable"). The PRD's own example (`GST-ABC-2026-09-00127`) abbreviates service
+/// and client names, but neither Service nor Client has a short-code field to derive that from
+/// today - inventing one now would be guessing at a format the founder hasn't specified.
+/// TASK-<year>-<month>-<sequence> is the simpler, still-unique-and-readable stand-in; the prefix
+/// can change later without touching this counter's mechanics.
+model TaskSequence {
+  id             String @id @default(uuid())
+  organisationId String
+  yearMonth      String
+  lastNumber     Int    @default(0)
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  @@unique([organisationId, yearMonth])
+  @@map("task_sequences")
 }

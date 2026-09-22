@@ -18,6 +18,7 @@ export default async function ProtectedLayout({ children }: { children: ReactNod
   const canViewServices = user.roleId
     ? await roleHasPermission(user.roleId, 'service:view')
     : false;
+  const canViewTasks = user.roleId ? await roleHasPermission(user.roleId, 'task:view') : false;
 
   return (
     <AppShell
@@ -27,6 +28,7 @@ export default async function ProtectedLayout({ children }: { children: ReactNod
       canViewSkills={canViewSkills}
       canViewClients={canViewClients}
       canViewServices={canViewServices}
+      canViewTasks={canViewTasks}
     >
       {children}
     </AppShell>

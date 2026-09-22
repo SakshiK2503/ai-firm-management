@@ -90,3 +90,30 @@ export async function updateEngagement(
     select: ENGAGEMENT_SELECT,
   });
 }
+
+// Task creation's "client/entity/service validation" (Day 44) needs more than each id existing -
+// a task should represent real, currently-engaged client work. Confirms the entity is actually
+// engaged for the service, and that engagement hasn't been terminated.
+export async function assertEngagementActive(
+  organisationId: string,
+  entityId: string,
+  serviceId: string,
+) {
+  const engagement = await db.engagement.findFirst({
+    where: { organisationId, clientEntityId: entityId, serviceId },
+  });
+  if (!engagement) {
+    throw new ApiError(
+      400,
+      'NO_ENGAGEMENT',
+      'This entity has no engagement for this service. Create one first.',
+    );
+  }
+  if (!engagement.isActive) {
+    throw new ApiError(
+      400,
+      'ENGAGEMENT_TERMINATED',
+      'This engagement has been terminated. Reactivate it before creating a task against it.',
+    );
+  }
+}
