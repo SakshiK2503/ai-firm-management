@@ -82,3 +82,72 @@ test.describe('task creation', () => {
     await expect(page.getByLabel('Task title')).toHaveCount(0);
   });
 });
+
+test.describe('task status workflow', () => {
+  test('Partner can move a task through several workflow transitions from the detail page', async ({
+    page,
+  }) => {
+    test.setTimeout(60_000);
+    await loginViaApi(page, SEED_OWNER_EMAIL);
+
+    const serviceName = `E2E Workflow Service ${Date.now()}`;
+    await page.goto('/services');
+    await page.getByLabel('Service name').fill(serviceName);
+    await page.getByRole('button', { name: 'Add service' }).click();
+    await expect(page.getByRole('link', { name: serviceName, exact: true })).toBeVisible();
+
+    const clientName = `E2E Workflow Client ${Date.now()}`;
+    await page.goto('/clients');
+    await page.getByLabel('New client name').fill(clientName);
+    await page.getByRole('button', { name: 'Add client' }).click();
+    await page.getByRole('link', { name: clientName, exact: true }).click();
+
+    await page.getByRole('button', { name: 'Add legal entity' }).click();
+    const entityName = `E2E Workflow Entity ${Date.now()}`;
+    await page.getByLabel('Entity name').fill(entityName);
+    await page.getByRole('button', { name: 'Add entity' }).click();
+    await page.getByRole('link', { name: entityName, exact: true }).click();
+    await expect(page.getByRole('heading', { name: entityName, exact: true })).toBeVisible();
+
+    await page.getByRole('button', { name: 'Add engagement' }).click();
+    await page.getByLabel('Service').selectOption({ label: serviceName });
+    await page.getByLabel('Engagement start').fill('2026-04-01');
+    await page.getByRole('button', { name: 'Add engagement', exact: true }).click();
+    await expect(page.getByRole('row', { name: new RegExp(serviceName) })).toBeVisible();
+
+    await page.goto('/tasks');
+    await page.getByLabel('Client', { exact: true }).selectOption({ label: clientName });
+    await page.getByLabel('Entity').selectOption({ label: entityName });
+    await page.getByLabel('Task service').selectOption({ label: serviceName });
+    const taskTitle = `E2E Workflow Task ${Date.now()}`;
+    await page.getByLabel('Task title').fill(taskTitle);
+    await page.getByRole('button', { name: 'Create task' }).click();
+    const taskRow = page.getByRole('row', { name: new RegExp(taskTitle) });
+    await expect(taskRow).toBeVisible();
+    await taskRow.getByRole('link', { name: /^TASK-\d{4}-\d{2}-\d{6}$/ }).click();
+    await expect(page.getByRole('heading', { name: taskTitle, exact: true })).toBeVisible();
+
+    await expect(page.getByText('Status: NEW')).toBeVisible();
+    // From NEW, a manual task can only go to AI_PROCESSING or AWAITING_ALLOCATION (plus
+    // CANCELLED) - it should never offer a status it can't legally reach next, like ASSIGNED.
+    await expect(page.getByRole('button', { name: 'Move to ASSIGNED' })).toHaveCount(0);
+
+    await page.getByRole('button', { name: 'Move to AWAITING_ALLOCATION' }).click();
+    await expect(page.getByText('Status: AWAITING_ALLOCATION')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Move to ASSIGNED' }).click();
+    await expect(page.getByText('Status: ASSIGNED')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Move to IN_PROGRESS' }).click();
+    await expect(page.getByText('Status: IN_PROGRESS')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Move to SUBMITTED_FOR_REVIEW' }).click();
+    await expect(page.getByText('Status: SUBMITTED_FOR_REVIEW')).toBeVisible();
+
+    // The Owner/Partner also holds task:review, so the reviewer-only transition is offered too.
+    await page.getByRole('button', { name: 'Move to REVIEW_IN_PROGRESS' }).click();
+    await expect(page.getByText('Status: REVIEW_IN_PROGRESS')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Move to APPROVED' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Move to CORRECTION_REQUIRED' })).toBeVisible();
+  });
+});

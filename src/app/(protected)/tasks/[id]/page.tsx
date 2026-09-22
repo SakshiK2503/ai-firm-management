@@ -2,7 +2,9 @@ import { notFound } from 'next/navigation';
 import { requireUserWithPermission } from '@/modules/kernel/rbac/enforce';
 import { roleHasPermission } from '@/modules/kernel/rbac/permissions';
 import { getTask } from '@/modules/tasks/task.service';
+import { getValidNextStatuses } from '@/modules/tasks/workflow.service';
 import { getEngagementForEntityService } from '@/modules/services/engagement.service';
+import { TaskStatusControl } from './TaskStatusControl';
 import styles from './page.module.css';
 
 export default async function TaskDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -35,6 +37,12 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
     task.serviceId,
   );
 
+  const [canUpdateStatus, canReview, canCancel] = await Promise.all([
+    user.roleId ? roleHasPermission(user.roleId, 'task:updateStatus') : false,
+    user.roleId ? roleHasPermission(user.roleId, 'task:review') : false,
+    user.roleId ? roleHasPermission(user.roleId, 'task:cancel') : false,
+  ]);
+
   return (
     <div>
       <h1>{task.title}</h1>
@@ -61,13 +69,23 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
           </dd>
           <dt>Priority</dt>
           <dd>{task.priority}</dd>
-          <dt>Status</dt>
-          <dd>{task.status}</dd>
           <dt>Source</dt>
           <dd>{task.source}</dd>
           <dt>Created</dt>
           <dd>{task.createdAt.toLocaleString()}</dd>
         </dl>
+      </section>
+
+      <section className={styles.section}>
+        <h2>Workflow</h2>
+        <TaskStatusControl
+          taskId={task.id}
+          initialStatus={task.status}
+          validNextStatuses={getValidNextStatuses(task.status)}
+          canUpdateStatus={canUpdateStatus}
+          canReview={canReview}
+          canCancel={canCancel}
+        />
       </section>
 
       <section className={styles.section}>

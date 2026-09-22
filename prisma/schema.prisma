@@ -16,24 +16,25 @@ model Organisation {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  departments        Department[]
-  roles              Role[]
-  users              User[]
-  sessions           Session[]
-  rolePermissions    RolePermission[]
-  skills             Skill[]
-  employeeSkills     EmployeeSkill[]
-  availabilities     Availability[]
-  clients            Client[]
-  clientEntities     ClientEntity[]
-  contacts           Contact[]
-  services           Service[]
-  checklistTemplates ChecklistTemplate[]
-  checklistItems     ChecklistItem[]
-  engagements        Engagement[]
-  recurringConfigs   RecurringConfig[]
-  tasks              Task[]
-  taskSequences      TaskSequence[]
+  departments         Department[]
+  roles               Role[]
+  users               User[]
+  sessions            Session[]
+  rolePermissions     RolePermission[]
+  skills              Skill[]
+  employeeSkills      EmployeeSkill[]
+  availabilities      Availability[]
+  clients             Client[]
+  clientEntities      ClientEntity[]
+  contacts            Contact[]
+  services            Service[]
+  checklistTemplates  ChecklistTemplate[]
+  checklistItems      ChecklistItem[]
+  engagements         Engagement[]
+  recurringConfigs    RecurringConfig[]
+  tasks               Task[]
+  taskSequences       TaskSequence[]
+  taskStatusHistories TaskStatusHistory[]
 
   @@map("organisations")
 }
@@ -119,19 +120,20 @@ model User {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  organisation    Organisation    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  department      Department?     @relation(fields: [departmentId], references: [id])
-  role            Role?           @relation(fields: [roleId], references: [id])
-  sessions        Session[]
+  organisation        Organisation        @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  department          Department?         @relation(fields: [departmentId], references: [id])
+  role                Role?               @relation(fields: [roleId], references: [id])
+  sessions            Session[]
   /// Self-referential reporting line. Nullable - not every employee has a manager assigned
   /// (e.g. a Partner at the top of the chain). Cycle prevention (an employee can't end up in
   /// their own reporting chain) is enforced in the service layer, not the schema - Postgres FKs
   /// can't express "no cycles."
-  manager         User?           @relation("UserManager", fields: [managerId], references: [id])
-  directReports   User[]          @relation("UserManager")
-  employeeSkills  EmployeeSkill[]
-  availabilities  Availability[]
-  managedEntities ClientEntity[]
+  manager             User?               @relation("UserManager", fields: [managerId], references: [id])
+  directReports       User[]              @relation("UserManager")
+  employeeSkills      EmployeeSkill[]
+  availabilities      Availability[]
+  managedEntities     ClientEntity[]
+  taskStatusHistories TaskStatusHistory[]
 
   @@unique([organisationId, email])
   @@index([organisationId])
@@ -544,11 +546,12 @@ model Task {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
-  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  client       Client       @relation(fields: [clientId], references: [id])
-  clientEntity ClientEntity @relation(fields: [clientEntityId], references: [id])
-  department   Department?  @relation(fields: [departmentId], references: [id])
-  service      Service      @relation(fields: [serviceId], references: [id])
+  organisation        Organisation        @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  client              Client              @relation(fields: [clientId], references: [id])
+  clientEntity        ClientEntity        @relation(fields: [clientEntityId], references: [id])
+  department          Department?         @relation(fields: [departmentId], references: [id])
+  service             Service             @relation(fields: [serviceId], references: [id])
+  taskStatusHistories TaskStatusHistory[]
 
   @@unique([organisationId, taskNumber])
   @@index([organisationId])
@@ -575,4 +578,30 @@ model TaskSequence {
 
   @@unique([organisationId, yearMonth])
   @@map("task_sequences")
+}
+
+/// One row per status-transition attempt - successful AND rejected (Day 48's own acceptance
+/// check: "every invalid transition is blocked and logged", plus PRD §12's "a complete
+/// timestamp trail should be maintained"). Scoped to Task status changes specifically, not a
+/// generic audit log for every material action across the app - that's its own later feature
+/// (Audit & Security phase). Task Engine's own "History" day reads from this same table rather
+/// than duplicating it.
+model TaskStatusHistory {
+  id             String     @id @default(uuid())
+  organisationId String
+  taskId         String
+  fromStatus     TaskStatus
+  toStatus       TaskStatus
+  succeeded      Boolean
+  reason         String?
+  changedById    String
+  createdAt      DateTime   @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  task         Task         @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  changedBy    User         @relation(fields: [changedById], references: [id])
+
+  @@index([organisationId])
+  @@index([taskId])
+  @@map("task_status_history")
 }
