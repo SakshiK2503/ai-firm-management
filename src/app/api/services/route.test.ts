@@ -103,6 +103,9 @@ describe('/api/services', () => {
         departmentId,
         expectedSkillLevel: 'INTERMEDIATE',
         turnaroundDays: 5,
+        estimatedEffortMinHours: 1.5,
+        estimatedEffortMaxHours: 3,
+        reviewRequired: true,
       },
       partnerSessionId,
     );
@@ -113,7 +116,21 @@ describe('/api/services', () => {
     expect(body.service.department.name).toBe('Taxation');
     expect(body.service.expectedSkillLevel).toBe('INTERMEDIATE');
     expect(body.service.turnaroundDays).toBe(5);
+    expect(body.service.estimatedEffortMinHours).toBe(1.5);
+    expect(body.service.estimatedEffortMaxHours).toBe(3);
+    expect(body.service.reviewRequired).toBe(true);
     expect(body.service.isActive).toBe(true);
+  });
+
+  it('rejects an effort max below the effort min', async () => {
+    const response = await post(
+      { name: 'Bad Effort Range', estimatedEffortMinHours: 5, estimatedEffortMaxHours: 2 },
+      partnerSessionId,
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.error.code).toBe('INVALID_EFFORT_RANGE');
   });
 
   it('rejects an empty name with a validation error', async () => {

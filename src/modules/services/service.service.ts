@@ -94,6 +94,21 @@ async function assertNameAvailable(
   }
 }
 
+// The "effort range" default (PRD §7) is only coherent as a range - a max below the min isn't a
+// data-entry style choice to allow, it's just wrong.
+function assertEffortRangeValid(
+  minHours: number | null | undefined,
+  maxHours: number | null | undefined,
+) {
+  if (minHours != null && maxHours != null && maxHours < minHours) {
+    throw new ApiError(
+      400,
+      'INVALID_EFFORT_RANGE',
+      'Estimated max effort hours must be greater than or equal to min effort hours.',
+    );
+  }
+}
+
 export async function createService(organisationId: string, input: ServiceInput) {
   if (input.parentId) {
     await assertParentValid(organisationId, input.parentId);
@@ -101,6 +116,7 @@ export async function createService(organisationId: string, input: ServiceInput)
   if (input.departmentId) {
     await assertDepartmentValid(organisationId, input.departmentId);
   }
+  assertEffortRangeValid(input.estimatedEffortMinHours, input.estimatedEffortMaxHours);
   await assertNameAvailable(organisationId, input.parentId ?? null, input.name);
 
   try {
@@ -199,6 +215,15 @@ export async function updateService(
     const nextParentId = data.parentId !== undefined ? data.parentId : existing.parentId;
     await assertNameAvailable(organisationId, nextParentId, data.name, serviceId);
   }
+  const nextMinHours =
+    data.estimatedEffortMinHours !== undefined
+      ? data.estimatedEffortMinHours
+      : existing.estimatedEffortMinHours;
+  const nextMaxHours =
+    data.estimatedEffortMaxHours !== undefined
+      ? data.estimatedEffortMaxHours
+      : existing.estimatedEffortMaxHours;
+  assertEffortRangeValid(nextMinHours, nextMaxHours);
 
   try {
     return await db.service.update({ where: { id: serviceId }, data, select: SERVICE_SELECT });

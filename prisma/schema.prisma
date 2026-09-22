@@ -31,6 +31,7 @@ model Organisation {
   checklistTemplates ChecklistTemplate[]
   checklistItems     ChecklistItem[]
   engagements        Engagement[]
+  recurringConfigs   RecurringConfig[]
 
   @@map("organisations")
 }
@@ -359,6 +360,7 @@ model Service {
   department        Department?        @relation(fields: [departmentId], references: [id])
   checklistTemplate ChecklistTemplate?
   engagements       Engagement[]
+  recurringConfig   RecurringConfig?
 
   // Name uniqueness is enforced in the service layer, not just this index - Postgres treats
   // every NULL in a unique index as distinct, so two top-level services (parentId null) with
@@ -440,4 +442,36 @@ model Engagement {
   @@index([clientEntityId])
   @@index([serviceId])
   @@map("engagements")
+}
+
+enum RecurrenceFrequency {
+  MONTHLY
+  QUARTERLY
+  ANNUALLY
+}
+
+/// The recurrence calendar for one recurring Service (PRD §32: "generate recurring tasks
+/// automatically based upon configured calendars"), e.g. GST filing on the 20th of every month.
+/// Task Engine (Day 44+) doesn't exist yet, so this is the configuration + next-occurrence
+/// computation baseline only - actually generating a Task from it is a later day's work, same as
+/// the Day 41 checklist template being just the template.
+model RecurringConfig {
+  id             String              @id @default(uuid())
+  organisationId String
+  serviceId      String              @unique
+  frequency      RecurrenceFrequency
+  // Capped at 28 (not 31) so every month can honor it without ambiguity about "the 30th in
+  // February" - a real edge case an accounting firm's monthly GST/TDS dates would hit often.
+  dayOfMonth     Int
+  // Only meaningful (and required) for ANNUALLY - e.g. ITR filing every October. Null for
+  // MONTHLY; QUARTERLY always aligns to calendar quarters (Jan/Apr/Jul/Oct).
+  monthOfYear    Int?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  service      Service      @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId])
+  @@map("recurring_configs")
 }

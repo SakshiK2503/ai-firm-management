@@ -121,6 +121,35 @@ describe('/api/services/[id]', () => {
     expect(response.status).toBe(404);
   });
 
+  it('updates the effort range, turnaround, and review requirement as a Partner', async () => {
+    const response = await patch(
+      serviceId,
+      {
+        estimatedEffortMinHours: 2,
+        estimatedEffortMaxHours: 4,
+        turnaroundDays: 3,
+        reviewRequired: true,
+      },
+      partnerSessionId,
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.service.estimatedEffortMinHours).toBe(2);
+    expect(body.service.estimatedEffortMaxHours).toBe(4);
+    expect(body.service.turnaroundDays).toBe(3);
+    expect(body.service.reviewRequired).toBe(true);
+  });
+
+  it('rejects lowering the effort max below the already-stored effort min', async () => {
+    // Min is 2 from the previous test - only sending a max should still be validated against it.
+    const response = await patch(serviceId, { estimatedEffortMaxHours: 1 }, partnerSessionId);
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.error.code).toBe('INVALID_EFFORT_RANGE');
+  });
+
   it('rejects reparenting a service under its own child (would create a cycle)', async () => {
     const response = await patch(serviceId, { parentId: childServiceId }, partnerSessionId);
     const body = await response.json();

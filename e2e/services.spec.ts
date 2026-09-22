@@ -84,6 +84,62 @@ test.describe('service master', () => {
     await expect(page.getByText('PAN application')).toHaveCount(0);
   });
 
+  test('Partner can set an effort range on a service and gets rejected for an invalid one', async ({
+    page,
+  }) => {
+    await loginViaApi(page, SEED_OWNER_EMAIL);
+    await page.goto('/services');
+
+    const serviceName = `E2E Effort Range ${Date.now()}`;
+    await page.getByLabel('Service name').fill(serviceName);
+    await page.getByLabel('Estimated effort min hours').fill('2');
+    await page.getByLabel('Estimated effort max hours').fill('4');
+    await page.getByRole('button', { name: 'Add service' }).click();
+    await page.getByRole('link', { name: serviceName, exact: true }).click();
+    await expect(page.getByRole('heading', { name: serviceName, exact: true })).toBeVisible();
+    await expect(page.getByText('2–4 hour(s)')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Edit service' }).click();
+    await page.getByLabel('Estimated effort max hours').fill('1');
+    await page.getByRole('button', { name: 'Save' }).click();
+    await expect(
+      page.getByText(
+        'Estimated max effort hours must be greater than or equal to min effort hours.',
+      ),
+    ).toBeVisible();
+  });
+
+  test('Partner can configure a recurrence calendar and see the next occurrence', async ({
+    page,
+  }) => {
+    await loginViaApi(page, SEED_OWNER_EMAIL);
+    await page.goto('/services');
+
+    const serviceName = `E2E Recurring GST ${Date.now()}`;
+    await page.getByLabel('Service name').fill(serviceName);
+    await page.getByLabel('Recurring').check();
+    await page.getByRole('button', { name: 'Add service' }).click();
+    await page.getByRole('link', { name: serviceName, exact: true }).click();
+    await expect(page.getByRole('heading', { name: serviceName, exact: true })).toBeVisible();
+
+    await expect(page.getByRole('heading', { name: 'Recurrence calendar' })).toBeVisible();
+    await page.getByLabel('Recurrence frequency').selectOption('MONTHLY');
+    await page.getByLabel('Day of month').fill('20');
+    await page.getByRole('button', { name: 'Save' }).click();
+
+    await expect(page.getByText('MONTHLY')).toBeVisible();
+    await expect(page.getByText('Next occurrence')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Edit recurrence' }).click();
+    await page.getByLabel('Recurrence frequency').selectOption('ANNUALLY');
+    await page.getByLabel('Day of month').fill('15');
+    await page.getByLabel('Month of year').selectOption('10');
+    await page.getByRole('button', { name: 'Save' }).click();
+
+    await expect(page.getByText('ANNUALLY')).toBeVisible();
+    await expect(page.getByText('October')).toBeVisible();
+  });
+
   test('a Preparer sees no Services nav link and cannot view the page directly', async ({
     page,
   }) => {

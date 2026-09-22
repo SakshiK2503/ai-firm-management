@@ -3,9 +3,11 @@ import { requireUserWithPermission } from '@/modules/kernel/rbac/enforce';
 import { roleHasPermission } from '@/modules/kernel/rbac/permissions';
 import { getService } from '@/modules/services/service.service';
 import { getChecklistForService } from '@/modules/services/checklist.service';
+import { getRecurringConfig } from '@/modules/services/recurring.service';
 import { listDepartments } from '@/modules/identity/department.service';
 import { ServiceDetail } from './ServiceDetail';
 import { ServiceChecklist } from './ServiceChecklist';
+import { ServiceRecurringConfig } from './ServiceRecurringConfig';
 
 export default async function ServiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { user, allowed } = await requireUserWithPermission('service:view');
@@ -26,9 +28,10 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
 
   const canManage = user.roleId ? await roleHasPermission(user.roleId, 'service:manage') : false;
 
-  const [checklist, departments] = await Promise.all([
+  const [checklist, departments, recurringConfig] = await Promise.all([
     getChecklistForService(user.organisationId, id),
     canManage ? listDepartments(user.organisationId) : Promise.resolve([]),
+    service.isRecurring ? getRecurringConfig(user.organisationId, id) : Promise.resolve(null),
   ]);
 
   return (
@@ -43,6 +46,17 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
         canManage={canManage}
       />
       <ServiceChecklist serviceId={id} initialChecklist={checklist} canManage={canManage} />
+      {service.isRecurring && (
+        <ServiceRecurringConfig
+          serviceId={id}
+          initialConfig={
+            recurringConfig
+              ? { ...recurringConfig, nextOccurrence: recurringConfig.nextOccurrence.toISOString() }
+              : null
+          }
+          canManage={canManage}
+        />
+      )}
     </>
   );
 }

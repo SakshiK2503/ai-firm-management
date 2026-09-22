@@ -43,6 +43,8 @@ export function ServicesAdmin({
     departmentId: '',
     expectedSkillLevel: '',
     turnaroundDays: '',
+    estimatedEffortMinHours: '',
+    estimatedEffortMaxHours: '',
     reviewRequired: false,
     isRecurring: false,
   });
@@ -71,6 +73,12 @@ export function ServicesAdmin({
       if (form.departmentId) payload.departmentId = form.departmentId;
       if (form.expectedSkillLevel) payload.expectedSkillLevel = form.expectedSkillLevel;
       if (form.turnaroundDays) payload.turnaroundDays = Number(form.turnaroundDays);
+      if (form.estimatedEffortMinHours) {
+        payload.estimatedEffortMinHours = Number(form.estimatedEffortMinHours);
+      }
+      if (form.estimatedEffortMaxHours) {
+        payload.estimatedEffortMaxHours = Number(form.estimatedEffortMaxHours);
+      }
       payload.reviewRequired = form.reviewRequired;
       payload.isRecurring = form.isRecurring;
 
@@ -92,6 +100,8 @@ export function ServicesAdmin({
         departmentId: '',
         expectedSkillLevel: '',
         turnaroundDays: '',
+        estimatedEffortMinHours: '',
+        estimatedEffortMaxHours: '',
         reviewRequired: false,
         isRecurring: false,
       });
@@ -185,6 +195,34 @@ export function ServicesAdmin({
               value={form.turnaroundDays}
               onChange={(event) => setForm({ ...form, turnaroundDays: event.target.value })}
               aria-label="Turnaround days"
+            />
+          </label>
+
+          <label className={styles.field}>
+            Estimated effort min (hours)
+            <input
+              type="number"
+              min="0"
+              step="0.5"
+              value={form.estimatedEffortMinHours}
+              onChange={(event) =>
+                setForm({ ...form, estimatedEffortMinHours: event.target.value })
+              }
+              aria-label="Estimated effort min hours"
+            />
+          </label>
+
+          <label className={styles.field}>
+            Estimated effort max (hours)
+            <input
+              type="number"
+              min="0"
+              step="0.5"
+              value={form.estimatedEffortMaxHours}
+              onChange={(event) =>
+                setForm({ ...form, estimatedEffortMaxHours: event.target.value })
+              }
+              aria-label="Estimated effort max hours"
             />
           </label>
 

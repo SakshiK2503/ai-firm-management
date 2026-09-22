@@ -47,8 +47,11 @@ export function ServiceDetail({
     departmentId: service.departmentId ?? '',
     expectedSkillLevel: service.expectedSkillLevel ?? '',
     turnaroundDays: service.turnaroundDays?.toString() ?? '',
+    estimatedEffortMinHours: service.estimatedEffortMinHours?.toString() ?? '',
+    estimatedEffortMaxHours: service.estimatedEffortMaxHours?.toString() ?? '',
     reviewRequired: service.reviewRequired,
     isRecurring: service.isRecurring,
+    standardDocuments: service.standardDocuments ?? '',
   });
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setSubmitting] = useState(false);
@@ -69,8 +72,15 @@ export function ServiceDetail({
         departmentId: form.departmentId || null,
         expectedSkillLevel: form.expectedSkillLevel || null,
         turnaroundDays: form.turnaroundDays ? Number(form.turnaroundDays) : null,
+        estimatedEffortMinHours: form.estimatedEffortMinHours
+          ? Number(form.estimatedEffortMinHours)
+          : null,
+        estimatedEffortMaxHours: form.estimatedEffortMaxHours
+          ? Number(form.estimatedEffortMaxHours)
+          : null,
         reviewRequired: form.reviewRequired,
         isRecurring: form.isRecurring,
+        standardDocuments: form.standardDocuments || null,
       };
 
       const response = await fetch(`/api/services/${service.id}`, {
@@ -163,6 +173,30 @@ export function ServiceDetail({
           />
         </label>
 
+        <label className={styles.field}>
+          Estimated effort min (hours)
+          <input
+            type="number"
+            min="0"
+            step="0.5"
+            value={form.estimatedEffortMinHours}
+            onChange={(event) => setForm({ ...form, estimatedEffortMinHours: event.target.value })}
+            aria-label="Estimated effort min hours"
+          />
+        </label>
+
+        <label className={styles.field}>
+          Estimated effort max (hours)
+          <input
+            type="number"
+            min="0"
+            step="0.5"
+            value={form.estimatedEffortMaxHours}
+            onChange={(event) => setForm({ ...form, estimatedEffortMaxHours: event.target.value })}
+            aria-label="Estimated effort max hours"
+          />
+        </label>
+
         <label className={styles.checkboxField}>
           <input
             type="checkbox"
@@ -179,6 +213,16 @@ export function ServiceDetail({
             onChange={(event) => setForm({ ...form, isRecurring: event.target.checked })}
           />
           Recurring
+        </label>
+
+        <label className={styles.field}>
+          Standard documents required
+          <textarea
+            value={form.standardDocuments}
+            onChange={(event) => setForm({ ...form, standardDocuments: event.target.value })}
+            aria-label="Standard documents required"
+            rows={3}
+          />
         </label>
 
         {error && (
@@ -211,10 +255,18 @@ export function ServiceDetail({
         <dd>{current.expectedSkillLevel ?? '—'}</dd>
         <dt>Turnaround</dt>
         <dd>{current.turnaroundDays ? `${current.turnaroundDays} day(s)` : '—'}</dd>
+        <dt>Estimated effort</dt>
+        <dd>
+          {current.estimatedEffortMinHours || current.estimatedEffortMaxHours
+            ? `${current.estimatedEffortMinHours ?? '?'}–${current.estimatedEffortMaxHours ?? '?'} hour(s)`
+            : '—'}
+        </dd>
         <dt>Review required</dt>
         <dd>{current.reviewRequired ? 'Yes' : 'No'}</dd>
         <dt>Recurring</dt>
         <dd>{current.isRecurring ? 'Yes' : 'No'}</dd>
+        <dt>Standard documents</dt>
+        <dd>{current.standardDocuments ?? '—'}</dd>
       </dl>
 
       {canManage && (
