@@ -134,6 +134,7 @@ model User {
   availabilities      Availability[]
   managedEntities     ClientEntity[]
   taskStatusHistories TaskStatusHistory[]
+  tasks               Task[]
 
   @@unique([organisationId, email])
   @@index([organisationId])
@@ -543,6 +544,7 @@ model Task {
   priority       TaskPriority @default(NORMAL)
   source         TaskSource   @default(MANUAL)
   status         TaskStatus   @default(NEW)
+  assignedToId   String?
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
@@ -551,6 +553,7 @@ model Task {
   clientEntity        ClientEntity        @relation(fields: [clientEntityId], references: [id])
   department          Department?         @relation(fields: [departmentId], references: [id])
   service             Service             @relation(fields: [serviceId], references: [id])
+  assignedTo          User?               @relation(fields: [assignedToId], references: [id])
   taskStatusHistories TaskStatusHistory[]
 
   @@unique([organisationId, taskNumber])
@@ -559,6 +562,7 @@ model Task {
   @@index([clientEntityId])
   @@index([serviceId])
   @@index([status])
+  @@index([assignedToId])
   @@map("tasks")
 }
 

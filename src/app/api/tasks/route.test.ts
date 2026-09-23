@@ -9,6 +9,7 @@ describe('/api/tasks', () => {
   let organisationId: string;
   let partnerSessionId: string;
   let preparerSessionId: string;
+  let preparerUserId: string;
   let clientId: string;
   let entityId: string;
   let otherClientEntityId: string;
@@ -70,6 +71,7 @@ describe('/api/tasks', () => {
         roleId: preparerRole.id,
       },
     });
+    preparerUserId = preparerUser.id;
     preparerSessionId = (
       await db.session.create({
         data: { organisationId, userId: preparerUser.id, expiresAt: future },
@@ -269,12 +271,33 @@ describe('/api/tasks', () => {
     expect(body.tasks.length).toBeGreaterThan(0);
   });
 
-  it('returns an empty list for a Preparer (no assignment mechanism yet)', async () => {
+  it('returns an empty list for a Preparer with nothing assigned to them', async () => {
     const response = await get(preparerSessionId);
     const body = await response.json();
 
     expect(response.status).toBe(200);
     expect(body.tasks).toEqual([]);
+  });
+
+  it('a Preparer sees exactly the tasks assigned to them, not other tasks', async () => {
+    const assigned = await db.task.create({
+      data: {
+        organisationId,
+        taskNumber: `TASK-ASSIGNED-TEST-${crypto.randomUUID()}`,
+        clientId,
+        clientEntityId: entityId,
+        serviceId,
+        title: 'Assigned to preparer',
+        assignedToId: preparerUserId,
+      },
+    });
+
+    const response = await get(preparerSessionId);
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.tasks).toHaveLength(1);
+    expect(body.tasks[0].id).toBe(assigned.id);
   });
 
   it('returns 401 listing tasks while logged out', async () => {
@@ -335,5 +358,30 @@ describe('/api/tasks', () => {
   it('rejects an invalid status filter value', async () => {
     const response = await get(partnerSessionId, '?status=NOT_A_REAL_STATUS');
     expect(response.status).toBe(400);
+  });
+
+  it('filters tasks by assignedToId', async () => {
+    const assigned = await db.task.create({
+      data: {
+        organisationId,
+        taskNumber: `TASK-ASSIGNEE-FILTER-TEST-${crypto.randomUUID()}`,
+        clientId,
+        clientEntityId: entityId,
+        serviceId,
+        title: 'Filter by assignee',
+        assignedToId: preparerUserId,
+      },
+    });
+
+    const response = await get(partnerSessionId, `?assignedToId=${preparerUserId}`);
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(
+      body.tasks.every(
+        (t: { assignedTo: { id: string } | null }) => t.assignedTo?.id === preparerUserId,
+      ),
+    ).toBe(true);
+    expect(body.tasks.some((t: { id: string }) => t.id === assigned.id)).toBe(true);
   });
 });

@@ -36,6 +36,7 @@ const listTasksQuerySchema = z.object({
   status: z.enum(statuses).optional(),
   clientId: z.string().uuid().optional(),
   priority: z.enum(priorities).optional(),
+  assignedToId: z.string().uuid().optional(),
 });
 
 export async function GET(request: NextRequest) {
@@ -48,10 +49,12 @@ export async function GET(request: NextRequest) {
       status: searchParams.get('status') ?? undefined,
       clientId: searchParams.get('clientId') ?? undefined,
       priority: searchParams.get('priority') ?? undefined,
+      assignedToId: searchParams.get('assignedToId') ?? undefined,
     });
 
     const tasks = await listTasks(user.organisationId, {
       scope: canViewAll ? 'all' : 'assigned',
+      actorUserId: user.id,
       ...filters,
     });
     return NextResponse.json({ tasks });

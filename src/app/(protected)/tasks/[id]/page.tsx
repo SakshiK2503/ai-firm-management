@@ -5,6 +5,7 @@ import { getTask } from '@/modules/tasks/task.service';
 import { getValidNextStatuses } from '@/modules/tasks/workflow.service';
 import { getEngagementForEntityService } from '@/modules/services/engagement.service';
 import { TaskStatusControl } from './TaskStatusControl';
+import { TaskAssignment } from './TaskAssignment';
 import styles from './page.module.css';
 
 export default async function TaskDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -18,16 +19,17 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
     );
   }
 
-  const canViewAll = user.roleId ? await roleHasPermission(user.roleId, 'task:viewAll') : false;
-  if (!canViewAll) {
-    // Mirrors Client/Entity's own scoping - no assignment mechanism yet (see docs/RBAC.md's
-    // known gaps), so a Preparer has no task detail access for now.
-    notFound();
-  }
-
   const { id } = await params;
   const task = await getTask(user.organisationId, id).catch(() => null);
   if (!task) {
+    notFound();
+  }
+
+  const canViewAll = user.roleId ? await roleHasPermission(user.roleId, 'task:viewAll') : false;
+  // Without task:viewAll, access is limited to a task actually assigned to this caller
+  // (task:view's own description: "View tasks assigned to you") - meaningful now that
+  // Assignment (Day 49) added assignedToId.
+  if (!canViewAll && task.assignedToId !== user.id) {
     notFound();
   }
 
@@ -37,10 +39,11 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
     task.serviceId,
   );
 
-  const [canUpdateStatus, canReview, canCancel] = await Promise.all([
+  const [canUpdateStatus, canReview, canCancel, canReassign] = await Promise.all([
     user.roleId ? roleHasPermission(user.roleId, 'task:updateStatus') : false,
     user.roleId ? roleHasPermission(user.roleId, 'task:review') : false,
     user.roleId ? roleHasPermission(user.roleId, 'task:cancel') : false,
+    user.roleId ? roleHasPermission(user.roleId, 'task:reassign') : false,
   ]);
 
   return (
@@ -85,6 +88,16 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
           canUpdateStatus={canUpdateStatus}
           canReview={canReview}
           canCancel={canCancel}
+        />
+      </section>
+
+      <section className={styles.section}>
+        <h2>Assignment</h2>
+        <TaskAssignment
+          taskId={task.id}
+          status={task.status}
+          assignedTo={task.assignedTo}
+          canReassign={canReassign}
         />
       </section>
 

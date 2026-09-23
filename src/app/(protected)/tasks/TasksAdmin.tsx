@@ -34,9 +34,15 @@ interface Task {
   client: { id: string; name: string };
   clientEntity: { id: string; name: string };
   service: { id: string; name: string };
+  assignedTo: { id: string; name: string } | null;
 }
 
 interface Client {
+  id: string;
+  name: string;
+}
+
+interface EmployeeOption {
   id: string;
   name: string;
 }
@@ -56,11 +62,13 @@ interface Engagement {
 export function TasksAdmin({
   initialTasks,
   clients,
+  employees,
   canCreate,
   canFilter,
 }: {
   initialTasks: Task[];
   clients: Client[];
+  employees: EmployeeOption[];
   canCreate: boolean;
   canFilter: boolean;
 }) {
@@ -75,7 +83,12 @@ export function TasksAdmin({
     title: '',
     priority: 'NORMAL' as (typeof PRIORITIES)[number],
   });
-  const [filters, setFilters] = useState({ status: '', clientId: '', priority: '' });
+  const [filters, setFilters] = useState({
+    status: '',
+    clientId: '',
+    priority: '',
+    assignedToId: '',
+  });
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setSubmitting] = useState(false);
 
@@ -98,6 +111,7 @@ export function TasksAdmin({
     if (currentFilters.status) params.set('status', currentFilters.status);
     if (currentFilters.clientId) params.set('clientId', currentFilters.clientId);
     if (currentFilters.priority) params.set('priority', currentFilters.priority);
+    if (currentFilters.assignedToId) params.set('assignedToId', currentFilters.assignedToId);
     const query = params.toString();
     return query ? `/api/tasks?${query}` : '/api/tasks';
   }
@@ -195,10 +209,30 @@ export function TasksAdmin({
             </select>
           </label>
 
-          {(filters.status || filters.clientId || filters.priority) && (
+          <label className={styles.field}>
+            Assignee
+            <select
+              value={filters.assignedToId}
+              onChange={(event) =>
+                handleFilterChange({ ...filters, assignedToId: event.target.value })
+              }
+              aria-label="Filter by assignee"
+            >
+              <option value="">All assignees</option>
+              {employees.map((employee) => (
+                <option key={employee.id} value={employee.id}>
+                  {employee.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {(filters.status || filters.clientId || filters.priority || filters.assignedToId) && (
             <button
               type="button"
-              onClick={() => handleFilterChange({ status: '', clientId: '', priority: '' })}
+              onClick={() =>
+                handleFilterChange({ status: '', clientId: '', priority: '', assignedToId: '' })
+              }
             >
               Clear filters
             </button>
@@ -330,6 +364,7 @@ export function TasksAdmin({
               <th>Service</th>
               <th>Priority</th>
               <th>Status</th>
+              <th>Assignee</th>
             </tr>
           </thead>
           <tbody>
@@ -344,6 +379,7 @@ export function TasksAdmin({
                 <td>{task.service.name}</td>
                 <td>{task.priority}</td>
                 <td>{task.status}</td>
+                <td>{task.assignedTo?.name ?? 'Unassigned'}</td>
               </tr>
             ))}
           </tbody>

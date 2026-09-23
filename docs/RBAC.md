@@ -124,22 +124,21 @@ literally starts with Manager's — so it can't silently drift apart, and tested
 
 ## Known gaps: row-level scoping isn't real yet
 
-Two separate scoping problems this design names but does not solve, because the underlying
-tables don't exist yet:
+1. **Task scoping (resolved Day 49).** `Task.assignedToId` now exists, and `listTasks`/`getTask`
+   (both the API routes and the detail/list pages) resolve `task:view`-without-`viewAll` to a
+   real query - `assignedToId = <caller>` - not an unconditional empty list. A Preparer sees
+   exactly the tasks assigned to them, in the list and via direct URL to a task's detail page.
+2. **Client scoping (still open).** `Client` has no assignee concept of its own - nothing yet
+   computes "clients I have tasks for" by joining through Task, so `client:view`-only (Preparer)
+   still gets an _empty_ result from `listClients`/`getClient` rather than a derived, task-based
+   scope. Worth revisiting now that Task assignment exists to join against, but not done as part
+   of Day 49 (out of that day's own scope).
+3. **Department scoping.** A Manager's `viewAll`/`reassign` etc. are firm-wide here, same as
+   Partner, because there's no "manager of department X" concept beyond a User having one
+   `departmentId`. Still open.
 
-1. **Client scoping (partially addressed Day 28).** The `Client` table now exists, and
-   `listClients`/`getClient` do split on `client:viewAll` vs plain `client:view` - but there's
-   still no `Task` table (Day 44+) to compute "assigned to me" against, so a `client:view`-only
-   role (Preparer) gets an _empty_ result rather than firm-wide access. That's the honest
-   interim behaviour, not the final one: once Task exists, "assigned" scope needs to become a
-   real query against task assignments instead of an unconditional empty list.
-2. **Department scoping.** A Manager's `viewAll`/`reassign` etc. are firm-wide here, same as
-   Partner, because nothing attaches a department to a Task in an enforceable way yet, and
-   there's no "manager of department X" concept beyond a User having one `departmentId`. Also a
-   Day 44+ problem.
-
-Both are noted here so Day 15's enforcement code (and whichever days build Client/Task) know
-these exist, without pretending to solve them before the tables they depend on exist.
+Noted here so enforcement code (and whichever days revisit Client/Department scoping) know
+these exist, without pretending to solve them before they're actually built.
 
 ## Where this lives in code
 

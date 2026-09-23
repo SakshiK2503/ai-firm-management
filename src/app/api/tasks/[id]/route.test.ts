@@ -9,6 +9,7 @@ describe('/api/tasks/[id]', () => {
   let organisationId: string;
   let partnerSessionId: string;
   let preparerSessionId: string;
+  let preparerUserId: string;
   let taskId: string;
 
   beforeAll(async () => {
@@ -64,6 +65,7 @@ describe('/api/tasks/[id]', () => {
         roleId: preparerRole.id,
       },
     });
+    preparerUserId = preparerUser.id;
     preparerSessionId = (
       await db.session.create({
         data: { organisationId, userId: preparerUser.id, expiresAt: future },
@@ -134,9 +136,20 @@ describe('/api/tasks/[id]', () => {
     expect(response.status).toBe(404);
   });
 
-  it('returns 404 for a Preparer (no assignment mechanism yet)', async () => {
+  it('returns 404 for a Preparer the task is not assigned to', async () => {
     const response = await get(taskId, preparerSessionId);
     expect(response.status).toBe(404);
+  });
+
+  it('a Preparer can view a task assigned to them', async () => {
+    await db.task.update({ where: { id: taskId }, data: { assignedToId: preparerUserId } });
+    const response = await get(taskId, preparerSessionId);
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.task.id).toBe(taskId);
+
+    await db.task.update({ where: { id: taskId }, data: { assignedToId: null } });
   });
 
   it('returns 401 while logged out', async () => {

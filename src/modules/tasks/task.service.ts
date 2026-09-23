@@ -18,10 +18,12 @@ const TASK_SELECT = {
   status: true,
   createdAt: true,
   updatedAt: true,
+  assignedToId: true,
   client: { select: { id: true, name: true } },
   clientEntity: { select: { id: true, name: true } },
   department: { select: { id: true, name: true } },
   service: { select: { id: true, name: true } },
+  assignedTo: { select: { id: true, name: true } },
 };
 
 export interface TaskInput {
@@ -82,30 +84,28 @@ export async function createTask(organisationId: string, input: TaskInput) {
 }
 
 export interface TaskListFilters {
-  // 'assigned' is a Preparer without task:viewAll. Task.assignedToId doesn't exist yet (Task
-  // Engine's "Assignment" is its own later day), so there's no way to compute "tasks assigned to
-  // me" - same honest-empty-result interim behaviour as Client's own scoping (see docs/RBAC.md's
-  // known gaps), to be revisited once assignment exists.
+  // 'assigned' is a Preparer without task:viewAll - resolved to "tasks where assignedToId is
+  // this caller" now that Assignment (Day 49) exists. actorUserId is required in that case;
+  // see docs/RBAC.md, this closes the "no assignment mechanism yet" gap noted since Day 44.
   scope: 'all' | 'assigned';
+  actorUserId?: string;
   status?: TaskStatus;
   clientId?: string;
   priority?: TaskPriority;
-  // Day 46's acceptance check also lists an assignee filter and a date filter - both need
-  // fields this batch deliberately doesn't have yet (assignedToId is Assignment's day, dueDate
-  // is Dates' day). Added here once those days land, not guessed at now.
+  assignedToId?: string;
+  // Day 46's acceptance check also lists a date filter - needs dueDate, its own later day
+  // ("Dates"). Added here once that lands, not guessed at now.
 }
 
 export async function listTasks(organisationId: string, options: TaskListFilters) {
-  if (options.scope === 'assigned') {
-    return [];
-  }
-
   return db.task.findMany({
     where: {
       organisationId,
+      ...(options.scope === 'assigned' ? { assignedToId: options.actorUserId } : {}),
       ...(options.status ? { status: options.status } : {}),
       ...(options.clientId ? { clientId: options.clientId } : {}),
       ...(options.priority ? { priority: options.priority } : {}),
+      ...(options.assignedToId ? { assignedToId: options.assignedToId } : {}),
     },
     select: TASK_SELECT,
     orderBy: { createdAt: 'desc' },

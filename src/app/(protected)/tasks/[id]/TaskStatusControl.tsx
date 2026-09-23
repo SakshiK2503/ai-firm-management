@@ -47,8 +47,19 @@ export function TaskStatusControl({
 }) {
   const router = useRouter();
   const [status, setStatus] = useState(initialStatus);
+  const [prevInitialStatus, setPrevInitialStatus] = useState(initialStatus);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setSubmitting] = useState<Status | null>(null);
+
+  // Adjusting state during render (React's own pattern for this - see "storing information from
+  // previous renders" in the useState docs), not an effect: a sibling component (TaskAssignment)
+  // can also move this task's status (assigning a task moves it to ASSIGNED) via its own
+  // router.refresh(), and useState alone only reads initialStatus on mount, so without this,
+  // this component would keep showing a stale status after a sibling's action changes it.
+  if (initialStatus !== prevInitialStatus) {
+    setPrevInitialStatus(initialStatus);
+    setStatus(initialStatus);
+  }
 
   const permissionGranted: Record<'updateStatus' | 'review' | 'cancel', boolean> = {
     updateStatus: canUpdateStatus,

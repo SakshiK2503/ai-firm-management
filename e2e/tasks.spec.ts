@@ -70,7 +70,7 @@ test.describe('task creation', () => {
     await expect(page.getByText('MONTHLY')).toBeVisible();
   });
 
-  test('a Preparer sees the Tasks nav link but no tasks and no create form (no assignment mechanism yet)', async ({
+  test('a Preparer with nothing assigned to them sees the Tasks nav link but no tasks and no create form', async ({
     page,
   }) => {
     await loginViaApi(page, SEED_PREPARER_EMAIL);
@@ -149,5 +149,73 @@ test.describe('task status workflow', () => {
     await expect(page.getByText('Status: REVIEW_IN_PROGRESS')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Move to APPROVED' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Move to CORRECTION_REQUIRED' })).toBeVisible();
+  });
+});
+
+test.describe('task assignment', () => {
+  test('Partner can assign an eligible employee once a task is awaiting allocation', async ({
+    page,
+  }) => {
+    // Heavier than the other multi-step task specs (adds an employee-creation step on top of
+    // service/client/entity/engagement/task/status-transition), and the assign endpoint itself
+    // can be slow on a first hit - see playwright.config.ts's own comment on hosted-DB latency.
+    test.setTimeout(90_000);
+    await loginViaApi(page, SEED_OWNER_EMAIL);
+
+    const employeeName = `E2E Assignment Employee ${Date.now()}`;
+    await page.goto('/employees');
+    await page.getByLabel('Full name').fill(employeeName);
+    await page.getByLabel('Email').fill(`e2e-assignment-${Date.now()}@example.com`);
+    await page.getByLabel('Temporary password').fill('a-strong-password');
+    await page.getByRole('button', { name: 'Add employee' }).click();
+    await expect(page.getByRole('link', { name: employeeName, exact: true })).toBeVisible();
+
+    const serviceName = `E2E Assignment Service ${Date.now()}`;
+    await page.goto('/services');
+    await page.getByLabel('Service name').fill(serviceName);
+    await page.getByRole('button', { name: 'Add service' }).click();
+    await expect(page.getByRole('link', { name: serviceName, exact: true })).toBeVisible();
+
+    const clientName = `E2E Assignment Client ${Date.now()}`;
+    await page.goto('/clients');
+    await page.getByLabel('New client name').fill(clientName);
+    await page.getByRole('button', { name: 'Add client' }).click();
+    await page.getByRole('link', { name: clientName, exact: true }).click();
+
+    await page.getByRole('button', { name: 'Add legal entity' }).click();
+    const entityName = `E2E Assignment Entity ${Date.now()}`;
+    await page.getByLabel('Entity name').fill(entityName);
+    await page.getByRole('button', { name: 'Add entity' }).click();
+    await page.getByRole('link', { name: entityName, exact: true }).click();
+    await expect(page.getByRole('heading', { name: entityName, exact: true })).toBeVisible();
+
+    await page.getByRole('button', { name: 'Add engagement' }).click();
+    await page.getByLabel('Service').selectOption({ label: serviceName });
+    await page.getByLabel('Engagement start').fill('2026-04-01');
+    await page.getByRole('button', { name: 'Add engagement', exact: true }).click();
+    await expect(page.getByRole('row', { name: new RegExp(serviceName) })).toBeVisible();
+
+    await page.goto('/tasks');
+    await page.getByLabel('Client', { exact: true }).selectOption({ label: clientName });
+    await page.getByLabel('Entity').selectOption({ label: entityName });
+    await page.getByLabel('Task service').selectOption({ label: serviceName });
+    const taskTitle = `E2E Assignment Task ${Date.now()}`;
+    await page.getByLabel('Task title').fill(taskTitle);
+    await page.getByRole('button', { name: 'Create task' }).click();
+    const taskRow = page.getByRole('row', { name: new RegExp(taskTitle) });
+    await expect(taskRow).toBeVisible();
+    await taskRow.getByRole('link', { name: /^TASK-\d{4}-\d{2}-\d{6}$/ }).click();
+    await expect(page.getByRole('heading', { name: taskTitle, exact: true })).toBeVisible();
+
+    await expect(page.getByText('Assigned to: Unassigned')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Move to AWAITING_ALLOCATION' }).click();
+    await expect(page.getByText('Status: AWAITING_ALLOCATION')).toBeVisible();
+
+    await page.getByLabel('Assign to employee').selectOption({ label: employeeName });
+    await page.getByRole('button', { name: 'Assign', exact: true }).click();
+
+    await expect(page.getByText(`Assigned to: ${employeeName}`)).toBeVisible();
+    await expect(page.getByText('Status: ASSIGNED')).toBeVisible();
   });
 });
